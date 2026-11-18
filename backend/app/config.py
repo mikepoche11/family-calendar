@@ -33,12 +33,24 @@ class Settings:
     # "Name:#hexcolor,Name2:#hexcolor" — seeds the people table on first start only
     people_seed: str = field(default_factory=lambda: _env("PEOPLE", "Family:#64748b"))
 
+    # Google Photos Picker (OAuth web client; see docs/photos-setup.md)
+    google_oauth_client_id: str = field(default_factory=lambda: _env("GOOGLE_OAUTH_CLIENT_ID"))
+    google_oauth_client_secret: str = field(default_factory=lambda: _env("GOOGLE_OAUTH_CLIENT_SECRET"))
+    # The address you sign in from; must match the redirect URI registered with Google
+    public_url: str = field(default_factory=lambda: _env("PUBLIC_URL", "http://localhost:8000").rstrip("/"))
+    screensaver_minutes: float = field(default_factory=lambda: float(_env("SCREENSAVER_MINUTES", "5")))
+    slide_seconds: float = field(default_factory=lambda: float(_env("SLIDE_SECONDS", "15")))
+
     # Serve the built wall UI from here when it exists
     static_dir: Path = field(default_factory=lambda: Path(_env("STATIC_DIR", "./static")))
 
     @property
     def db_path(self) -> Path:
         return self.data_dir / "calendar.db"
+
+    @property
+    def photos_dir(self) -> Path:
+        return self.data_dir / "photos"
 
     @property
     def google_enabled(self) -> bool:

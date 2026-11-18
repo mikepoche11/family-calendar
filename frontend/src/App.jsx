@@ -9,6 +9,7 @@ import Header from './Header.jsx'
 import EventModal, { draftFrom } from './EventModal.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
+import Screensaver from './Screensaver.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -29,7 +30,15 @@ export default function App() {
   const [view, setView] = useState(DEFAULT_VIEW)
   const [title, setTitle] = useState('')
   const [draft, setDraft] = useState(null)
-  const [showSettings, setShowSettings] = useState(false)
+  const [showSettings, setShowSettings] = useState(() =>
+    new URLSearchParams(window.location.search).has('photos') ||
+    new URLSearchParams(window.location.search).has('photos_error')
+      ? 'photos'
+      : false,
+  )
+  const [config, setConfig] = useState({ screensaver_minutes: 5, slide_seconds: 15 })
+  const [photos, setPhotos] = useState([])
+  const [screensaver, setScreensaver] = useState(false)
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
@@ -37,15 +46,20 @@ export default function App() {
   const loadPeople = useCallback(() => api.people().then(setPeople).catch(() => {}), [])
   const loadWeather = useCallback(() => api.weather().then(setWeather).catch(() => {}), [])
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
+  const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
 
   useEffect(() => {
     loadPeople()
     loadWeather()
     loadHealth()
+    loadPhotos()
+    api.config().then(setConfig).catch(() => {})
+    if (window.location.search) window.history.replaceState(null, '', '/')
     const w = setInterval(loadWeather, 15 * 60 * 1000)
     const h = setInterval(loadHealth, 60 * 1000)
     const unsubscribe = subscribe((kind) => {
       if (kind === 'people') loadPeople()
+      if (kind === 'photos') return loadPhotos()
       refetch()
     })
     return () => {
@@ -53,7 +67,23 @@ export default function App() {
       clearInterval(h)
       unsubscribe()
     }
-  }, [loadPeople, loadWeather, loadHealth, refetch])
+  }, [loadPeople, loadWeather, loadHealth, loadPhotos, refetch])
+
+  // Photo screensaver after SCREENSAVER_MINUTES untouched (only when there are photos and no dialog is open)
+  useEffect(() => {
+    if (!photos.length || draft || showSettings || screensaver) return
+    let timer
+    const reset = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => setScreensaver(true), config.screensaver_minutes * 60 * 1000)
+    }
+    reset()
+    window.addEventListener('pointerdown', reset)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('pointerdown', reset)
+    }
+  }, [photos.length, draft, showSettings, screensaver, config.screensaver_minutes])
 
   // People colours and the filter are applied when events are fetched
   useEffect(() => {
@@ -178,8 +208,8 @@ export default function App() {
         </button>
         {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
         {health?.mode === 'demo' && <span className="demo">Demo data</span>}
-        <button className="settings-btn" onClick={() => setShowSettings(true)} aria-label="Family settings">
-          ⚙ Family
+        <button className="settings-btn" onClick={() => setShowSettings('family')} aria-label="Settings">
+          ⚙ Settings
         </button>
       </div>
 
@@ -215,7 +245,23 @@ export default function App() {
       </button>
 
       {showSettings && (
-        <Settings people={people} onChanged={loadPeople} onClose={() => setShowSettings(false)} />
+        <Settings
+          people={people}
+          initialTab={showSettings}
+          onChanged={loadPeople}
+          onClose={() => {
+            setShowSettings(false)
+            loadPhotos()
+          }}
+          onPreview={() => {
+            setShowSettings(false)
+            loadPhotos().then(() => setScreensaver(true))
+          }}
+        />
+      )}
+
+      {screensaver && photos.length > 0 && (
+        <Screensaver photos={photos} slideSeconds={config.slide_seconds} onClose={() => setScreensaver(false)} />
       )}
 
       {draft && (

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -19,6 +19,7 @@ from .config import Settings, get_settings
 from .db import Database
 from .demo import demo_events
 from .events import from_google, match_person, titled_for, to_google, to_utc_iso
+from .photos import Photos, PhotosError
 from .weather import Weather
 
 log = logging.getLogger("family-calendar")
@@ -56,6 +57,13 @@ class State:
         self.db.seed_people(settings.people_seed)
         self.weather = Weather(settings.latitude, settings.longitude, settings.timezone, settings.temperature_unit)
         self.broadcaster = Broadcaster()
+        self.photos = Photos(
+            self.db,
+            settings.photos_dir,
+            settings.google_oauth_client_id,
+            settings.google_oauth_client_secret,
+            settings.public_url + "/api/photos/auth/callback",
+        )
         self.google = None
         self.last_sync: str | None = None
         self.last_error: str | None = None
@@ -155,7 +163,12 @@ def health(request: Request):
 @app.get("/api/config")
 def config(request: Request):
     s = st(request)
-    return {"timezone": s.settings.timezone, "mode": "demo" if s.google is None else "google"}
+    return {
+        "timezone": s.settings.timezone,
+        "mode": "demo" if s.google is None else "google",
+        "screensaver_minutes": s.settings.screensaver_minutes,
+        "slide_seconds": s.settings.slide_seconds,
+    }
 
 
 @app.post("/api/sync")
@@ -301,6 +314,84 @@ async def delete_event(event_id: str, request: Request):
         await asyncio.to_thread(s.google.delete, event_id)
     s.db.delete_event(event_id)
     s.broadcaster.publish("events")
+
+
+# --- photos ---------------------------------------------------------------------
+@app.get("/api/photos")
+def photos_list(request: Request):
+    return st(request).photos.list()
+
+
+@app.get("/api/photos/status")
+def photos_status(request: Request):
+    return st(request).photos.status()
+
+
+@app.get("/api/photos/file/{name}")
+def photos_file(name: str, request: Request):
+    path = st(request).photos.path_for(name)
+    if path is None:
+        raise HTTPException(404, "No such photo")
+    return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.delete("/api/photos/file/{name}", status_code=204)
+def photos_delete(name: str, request: Request):
+    s = st(request)
+    if not s.photos.delete(name):
+        raise HTTPException(404, "No such photo")
+    s.broadcaster.publish("photos")
+
+
+@app.delete("/api/photos")
+def photos_delete_all(request: Request):
+    s = st(request)
+    n = s.photos.delete_all()
+    s.broadcaster.publish("photos")
+    return {"deleted": n}
+
+
+@app.get("/api/photos/auth/start", include_in_schema=False)
+def photos_auth_start(request: Request):
+    try:
+        return RedirectResponse(st(request).photos.auth_url())
+    except PhotosError as exc:
+        raise HTTPException(400, str(exc))
+
+
+@app.get("/api/photos/auth/callback", include_in_schema=False)
+async def photos_auth_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    s = st(request)
+    if error:
+        return RedirectResponse(f"/?photos_error={error}")
+    try:
+        await s.photos.finish_auth(code, state)
+    except PhotosError as exc:
+        return RedirectResponse(f"/?photos_error={exc}")
+    s.broadcaster.publish("photos")
+    return RedirectResponse("/?photos=connected")
+
+
+@app.post("/api/photos/disconnect")
+def photos_disconnect(request: Request):
+    st(request).photos.disconnect()
+    return {"ok": True}
+
+
+@app.post("/api/photos/pick")
+async def photos_pick(request: Request):
+    s = st(request)
+    try:
+        pick = await s.photos.start_pick()
+    except PhotosError as exc:
+        raise HTTPException(400, str(exc))
+    return pick
+
+
+@app.delete("/api/photos/pick")
+def photos_pick_cancel(request: Request):
+    st(request).photos.cancel_pick()
+    return {"ok": True}
 
 
 # --- weather + live updates -------------------------------------------------------
