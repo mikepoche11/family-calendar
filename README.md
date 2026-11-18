@@ -12,14 +12,14 @@ colours events by family member, and shows weather.
 - Day, week, month and two-week schedule views, sized for touch
 - Colour per family member, from the event title (`Mike: Dentist`), with filter chips
 - Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
+- Photo screensaver after 5 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
 - Live refresh: changes show on every open screen within a second
 - Returns to this week after 2 minutes untouched
 - Demo mode with sample events when no Google credentials are configured
 
-Planned next: chores and rewards, lists, phone layout as an installable app, meal planning,
-photo screensaver, and forwarding school emails to create events. See the strategy doc in the
+Planned next: chores and rewards, lists, phone layout as an installable app, meal planning, and forwarding school emails to create events. See the strategy doc in the
 project for the full plan.
 
 ## Layout
@@ -35,6 +35,7 @@ project for the full plan.
 
 1. [Raspberry Pi kiosk](docs/pi-setup.md)
 2. [Connect the Google calendar](docs/google-setup.md)
+3. [Photo screensaver](docs/photos-setup.md) (optional)
 
 ## Develop
 

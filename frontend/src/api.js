@@ -23,6 +23,13 @@ export const api = {
   updatePerson: (id, body) => request('PATCH', `/api/people/${id}`, body),
   deletePerson: (id) => request('DELETE', `/api/people/${id}`),
   weather: () => request('GET', '/api/weather'),
+  photos: () => request('GET', '/api/photos'),
+  photoStatus: () => request('GET', '/api/photos/status'),
+  startPick: () => request('POST', '/api/photos/pick'),
+  cancelPick: () => request('DELETE', '/api/photos/pick'),
+  disconnectPhotos: () => request('POST', '/api/photos/disconnect'),
+  deletePhoto: (name) => request('DELETE', `/api/photos/file/${encodeURIComponent(name)}`),
+  deleteAllPhotos: () => request('DELETE', '/api/photos'),
   events: (start, end) =>
     request('GET', `/api/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
   createEvent: (body) => request('POST', '/api/events', body),

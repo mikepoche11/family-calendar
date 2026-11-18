@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from './api.js'
 import Avatar, { AVATARS, AvatarArt } from './avatars.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 export const COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#16a34a', '#14b8a6',
@@ -8,7 +9,8 @@ export const COLORS = [
 ]
 
 /** Family settings: pick a person, then change their name, colour and avatar. Saves as you tap. */
-export default function Settings({ people, onChanged, onClose }) {
+export default function Settings({ people, onChanged, onClose, initialTab = 'family', onPreview }) {
+  const [tab, setTab] = useState(initialTab)
   const [selectedId, setSelectedId] = useState(people[0]?.id ?? null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState(null)
@@ -46,10 +48,16 @@ export default function Settings({ people, onChanged, onClose }) {
     <div className="backdrop" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal settings">
         <div className="settings-head">
-          <h2>Family</h2>
+          <div className="tabs">
+            <button className={tab === 'family' ? 'on' : ''} onClick={() => setTab('family')}>Family</button>
+            <button className={tab === 'photos' ? 'on' : ''} onClick={() => setTab('photos')}>Photos</button>
+          </div>
           <button onClick={onClose} className="primary">Done</button>
         </div>
 
+        {tab === 'photos' && <PhotosPanel onPreview={onPreview} />}
+
+        {tab === 'family' && (
         <div className="person-tabs">
           {people.map((p) => (
             <button
@@ -70,8 +78,9 @@ export default function Settings({ people, onChanged, onClose }) {
             <span>Add</span>
           </button>
         </div>
+        )}
 
-        {person && (
+        {tab === 'family' && person && (
           <div className="editor" key={person.id}>
             <label>
               Name
