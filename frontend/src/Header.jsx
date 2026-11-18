@@ -13,7 +13,7 @@ function useNow(intervalMs = 15000) {
   return now
 }
 
-export default function Header({ weather }) {
+export default function Header({ weather, children }) {
   const now = useNow()
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   const date = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
@@ -23,6 +23,7 @@ export default function Header({ weather }) {
         <div className="time">{time}</div>
         <div className="date">{date}</div>
       </div>
+      {children}
       {weather && (
         <div className="weather">
           <div className="now">

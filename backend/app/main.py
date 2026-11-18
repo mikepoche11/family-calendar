@@ -139,6 +139,15 @@ class PersonPatch(BaseModel):
     avatar: str | None = Field(default=None, pattern=AVATAR)
 
 
+class GroceryIn(BaseModel):
+    text: str = Field(min_length=1, max_length=120)
+
+
+class GroceryPatch(BaseModel):
+    text: str | None = Field(default=None, min_length=1, max_length=120)
+    done: bool | None = None
+
+
 class EventIn(BaseModel):
     summary: str = Field(min_length=1, max_length=200)
     start: str  # "YYYY-MM-DD" for all-day; else ISO datetime (with offset/Z, or local to TIMEZONE if none)
@@ -314,6 +323,49 @@ async def delete_event(event_id: str, request: Request):
         await asyncio.to_thread(s.google.delete, event_id)
     s.db.delete_event(event_id)
     s.broadcaster.publish("events")
+
+
+# --- grocery list ---------------------------------------------------------------
+@app.get("/api/grocery")
+def grocery_list(request: Request):
+    return st(request).db.list_grocery()
+
+
+@app.post("/api/grocery", status_code=201)
+def grocery_add(body: GroceryIn, request: Request):
+    s = st(request)
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(422, "Type something to add")
+    item = s.db.add_grocery(text)
+    s.broadcaster.publish("grocery")
+    return item
+
+
+@app.patch("/api/grocery/{gid}")
+def grocery_update(gid: int, body: GroceryPatch, request: Request):
+    s = st(request)
+    item = s.db.update_grocery(gid, body.text.strip() if body.text else None, body.done)
+    if not item:
+        raise HTTPException(404, "No such item")
+    s.broadcaster.publish("grocery")
+    return item
+
+
+@app.delete("/api/grocery/{gid}", status_code=204)
+def grocery_delete(gid: int, request: Request):
+    s = st(request)
+    if not s.db.delete_grocery(gid):
+        raise HTTPException(404, "No such item")
+    s.broadcaster.publish("grocery")
+
+
+@app.post("/api/grocery/clear-checked")
+def grocery_clear_checked(request: Request):
+    s = st(request)
+    n = s.db.clear_checked_grocery()
+    s.broadcaster.publish("grocery")
+    return {"deleted": n}
 
 
 # --- photos ---------------------------------------------------------------------

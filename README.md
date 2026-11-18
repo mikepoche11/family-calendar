@@ -12,6 +12,7 @@ colours events by family member, and shows weather.
 - Day, week, month and two-week schedule views, sized for touch
 - Colour per family member, from the event title (`Mike: Dentist`), with filter chips
 - Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
+- Shared grocery list: add from the wall or any phone, tap to check off, clear checked; duplicates are ignored
 - Photo screensaver after 10 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
@@ -19,7 +20,7 @@ colours events by family member, and shows weather.
 - Returns to this week after 2 minutes untouched
 - Demo mode with sample events when no Google credentials are configured
 
-Planned next: chores and rewards, lists, phone layout as an installable app, meal planning, and forwarding school emails to create events. See the strategy doc in the
+Planned next: chores, marble jars, phone layout as an installable app, meal planning, and forwarding school emails to create events. See the strategy doc in the
 project for the full plan.
 
 ## Layout
@@ -61,6 +62,7 @@ npm run dev
 | GET | `/api/events?start=&end=` | events overlapping the range (ISO dates) |
 | POST / PATCH / DELETE | `/api/events[/{id}]` | create, edit, delete (written to Google) |
 | GET / POST / PATCH / DELETE | `/api/people[/{id}]` | family members and colours |
+| GET / POST / PATCH / DELETE | `/api/grocery[/{id}]` | grocery items; `POST /api/grocery/clear-checked` removes checked ones |
 | GET | `/api/weather` | current conditions and forecast |
 | POST | `/api/sync` | sync with Google now |
 | GET | `/api/stream` | Server-Sent Events: `changed` when data changes |

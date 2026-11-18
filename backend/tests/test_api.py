@@ -98,3 +98,24 @@ def test_old_database_gets_avatar_column(tmp_path):
     conn.commit()
     conn.close()
     assert Database(path).list_people()[0]["avatar"] == ""
+
+
+def test_grocery_list(client):
+    milk = client.post("/api/grocery", json={"text": " Milk "}).json()
+    assert milk["text"] == "Milk" and milk["done"] is False
+    assert client.post("/api/grocery", json={"text": "milk"}).json()["id"] == milk["id"]  # no duplicates
+    eggs = client.post("/api/grocery", json={"text": "Eggs"}).json()
+    assert [i["text"] for i in client.get("/api/grocery").json()] == ["Eggs", "Milk"]
+
+    r = client.patch(f"/api/grocery/{milk['id']}", json={"done": True})
+    assert r.json()["done"] is True and r.json()["done_at"]
+    assert [i["text"] for i in client.get("/api/grocery").json()] == ["Eggs", "Milk"]  # checked go last
+    client.patch(f"/api/grocery/{eggs['id']}", json={"done": True})
+    client.patch(f"/api/grocery/{eggs['id']}", json={"done": False})
+    assert client.get("/api/grocery").json()[0]["done"] is False
+
+    assert client.post("/api/grocery/clear-checked").json() == {"deleted": 1}
+    assert [i["text"] for i in client.get("/api/grocery").json()] == ["Eggs"]
+    assert client.post("/api/grocery", json={"text": "   "}).status_code == 422
+    assert client.delete(f"/api/grocery/{eggs['id']}").status_code == 204
+    assert client.get("/api/grocery").json() == []
