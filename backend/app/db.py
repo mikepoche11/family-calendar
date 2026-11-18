@@ -30,6 +30,14 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS events_start ON events(start);
 
+CREATE TABLE IF NOT EXISTS grocery (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    text       TEXT NOT NULL,
+    done       INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    done_at    TEXT
+);
+
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -175,6 +183,50 @@ class Database:
                 "SELECT * FROM events WHERE end > ? AND start < ? ORDER BY start", (start, end)
             ).fetchall()
         return [_event_row(r) for r in rows]
+
+
+    # --- grocery list --------------------------------------------------------
+    def list_grocery(self) -> list[dict]:
+        """Unchecked items first (newest on top), then checked items (most recently checked first)."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT id, text, done, created_at, done_at FROM grocery "
+                "ORDER BY done, CASE WHEN done THEN done_at END DESC, id DESC"
+            ).fetchall()
+        return [dict(r) | {"done": bool(r["done"])} for r in rows]
+
+    def add_grocery(self, text: str) -> dict:
+        with self.connect() as conn:
+            existing = conn.execute(
+                "SELECT id FROM grocery WHERE done = 0 AND lower(text) = lower(?)", (text,)
+            ).fetchone()
+            if existing:  # already on the list: don't add a duplicate
+                gid = existing["id"]
+            else:
+                gid = conn.execute("INSERT INTO grocery(text) VALUES(?)", (text,)).lastrowid
+            row = conn.execute("SELECT id, text, done, created_at, done_at FROM grocery WHERE id = ?", (gid,)).fetchone()
+        return dict(row) | {"done": bool(row["done"])}
+
+    def update_grocery(self, gid: int, text: str | None = None, done: bool | None = None) -> dict | None:
+        with self.connect() as conn:
+            if text is not None:
+                conn.execute("UPDATE grocery SET text = ? WHERE id = ?", (text, gid))
+            if done is not None:
+                conn.execute(
+                    "UPDATE grocery SET done = ?, done_at = CASE WHEN ? THEN strftime('%Y-%m-%dT%H:%M:%SZ', 'now') END "
+                    "WHERE id = ?",
+                    (int(done), int(done), gid),
+                )
+            row = conn.execute("SELECT id, text, done, created_at, done_at FROM grocery WHERE id = ?", (gid,)).fetchone()
+        return dict(row) | {"done": bool(row["done"])} if row else None
+
+    def delete_grocery(self, gid: int) -> bool:
+        with self.connect() as conn:
+            return conn.execute("DELETE FROM grocery WHERE id = ?", (gid,)).rowcount > 0
+
+    def clear_checked_grocery(self) -> int:
+        with self.connect() as conn:
+            return conn.execute("DELETE FROM grocery WHERE done = 1").rowcount
 
 
 def _event_row(row: sqlite3.Row) -> dict:

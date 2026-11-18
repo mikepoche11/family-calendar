@@ -10,6 +10,7 @@ import EventModal, { draftFrom } from './EventModal.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
 import Screensaver from './Screensaver.jsx'
+import GroceryList from './GroceryList.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -39,6 +40,8 @@ export default function App() {
   const [config, setConfig] = useState({ screensaver_minutes: 5, slide_seconds: 15 })
   const [photos, setPhotos] = useState([])
   const [screensaver, setScreensaver] = useState(false)
+  const [section, setSection] = useState('calendar')
+  const [groceryVersion, setGroceryVersion] = useState(0)
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
@@ -60,6 +63,7 @@ export default function App() {
     const unsubscribe = subscribe((kind) => {
       if (kind === 'people') loadPeople()
       if (kind === 'photos') return loadPhotos()
+      if (kind === 'grocery') return setGroceryVersion((v) => v + 1)
       refetch()
     })
     return () => {
@@ -98,6 +102,7 @@ export default function App() {
       timer = setTimeout(() => {
         setDraft(null)
         setShowSettings(false)
+        setSection('calendar')
         const cal = calRef.current?.getApi()
         if (cal) {
           cal.changeView(DEFAULT_VIEW)
@@ -150,6 +155,11 @@ export default function App() {
 
   const cal = () => calRef.current?.getApi()
 
+  // FullCalendar measures itself; re-measure when its section becomes visible again
+  useEffect(() => {
+    if (section === 'calendar') requestAnimationFrame(() => calRef.current?.getApi().updateSize())
+  }, [section])
+
   async function save(id, body) {
     if (id) await api.updateEvent(id, body)
     else await api.createEvent(body)
@@ -165,8 +175,20 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header weather={weather} />
+      <Header weather={weather}>
+        <nav className="sections">
+          <button className={section === 'calendar' ? 'on' : ''} onClick={() => setSection('calendar')}>
+            📅 Calendar
+          </button>
+          <button className={section === 'grocery' ? 'on' : ''} onClick={() => setSection('grocery')}>
+            🛒 Grocery
+          </button>
+        </nav>
+      </Header>
 
+      {section === 'grocery' && <GroceryList version={groceryVersion} />}
+
+      <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
       <div className="toolbar">
         <div className="nav">
           <button onClick={() => cal()?.prev()} aria-label="Previous">‹</button>
@@ -243,6 +265,7 @@ export default function App() {
       <button className="fab" onClick={() => setDraft(draftFrom({}))} aria-label="Add event">
         +
       </button>
+      </div>
 
       {showSettings && (
         <Settings
