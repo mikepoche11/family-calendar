@@ -12,6 +12,7 @@ import Avatar from './avatars.jsx'
 import Screensaver from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
+import Marbles from './Marbles.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -44,6 +45,7 @@ export default function App() {
   const [section, setSection] = useState('calendar')
   const [groceryVersion, setGroceryVersion] = useState(0)
   const [choresVersion, setChoresVersion] = useState(0)
+  const [marblesVersion, setMarblesVersion] = useState(0)
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
@@ -66,10 +68,12 @@ export default function App() {
       if (kind === 'people') {
         loadPeople()
         setChoresVersion((v) => v + 1)
+        setMarblesVersion((v) => v + 1)
       }
       if (kind === 'photos') return loadPhotos()
       if (kind === 'grocery') return setGroceryVersion((v) => v + 1)
       if (kind === 'chores') return setChoresVersion((v) => v + 1)
+      if (kind === 'marbles') return setMarblesVersion((v) => v + 1)
       refetch()
     })
     return () => {
@@ -192,11 +196,15 @@ export default function App() {
           <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
             ✅ Chores
           </button>
+          <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
+            🫙 Marbles
+          </button>
         </nav>
       </Header>
 
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
+      {section === 'marbles' && <Marbles people={people} version={marblesVersion} />}
 
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
       <div className="toolbar">

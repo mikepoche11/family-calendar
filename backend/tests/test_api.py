@@ -133,3 +133,25 @@ def test_chores_api(client):
     assert client.patch(f"/api/chores/{bed['id']}", json={"anyone": True}).json()["person_id"] is None
     assert client.post("/api/chores", json={"title": "x", "days": "78"}).status_code == 422
     assert client.post("/api/chores", json={"title": "x", "person_id": 999}).status_code == 422
+
+
+def test_marbles_api(client):
+    people = {p["name"]: p["id"] for p in client.get("/api/people").json()}
+    ava = people["Ava"]
+    assert client.put("/api/marbles/jars", json={"person_ids": [ava]}).status_code == 200
+    data = client.get("/api/marbles").json()
+    assert data["jars"][0]["person_id"] == ava and len(data["rewards"]) == 5
+    assert client.post(f"/api/marbles/{ava}/add", json={"color": "blue", "count": 3}).json()["blue"] == 3
+    assert client.post(f"/api/marbles/{ava}/add", json={"color": "red"}).status_code == 422
+    coke = next(r for r in data["rewards"] if r["title"] == "Coke")
+    big = next(r for r in data["rewards"] if r["title"] == "Big ice cream")
+    assert client.post(f"/api/marbles/{ava}/spend", json={"reward_id": big["id"]}).status_code == 409
+    assert client.post(f"/api/marbles/{ava}/spend", json={"reward_id": coke["id"]}).json()["blue"] == 0
+    client.post(f"/api/marbles/{ava}/add", json={"color": "white"})
+    assert client.post(f"/api/marbles/{ava}/cancel").status_code == 409
+    assert client.post(f"/api/marbles/{ava}/undo").json()["white"] == 0
+    assert client.post("/api/marbles/999/add", json={"color": "blue"}).status_code == 404
+    assert client.put("/api/marbles/jars", json={"person_ids": [999]}).status_code == 422
+    r = client.post("/api/rewards", json={"title": "Movie night", "icon": "🎬", "cost": 10}).json()
+    assert client.patch(f"/api/rewards/{r['id']}", json={"cost": 8}).json()["cost"] == 8
+    assert client.delete(f"/api/rewards/{r['id']}").status_code == 204
