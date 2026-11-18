@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Avatar from './avatars.jsx'
 
 const pad = (n) => String(n).padStart(2, '0')
 const localDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -117,6 +118,7 @@ export default function EventModal({ draft, people, onSave, onDelete, onClose })
               style={{ '--chip': p.color }}
               onClick={() => setF({ ...f, person_id: p.id })}
             >
+              <Avatar person={p} size={32} />
               {p.name}
             </button>
           ))}

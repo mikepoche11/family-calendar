@@ -19,6 +19,9 @@ export const api = {
   config: () => request('GET', '/api/config'),
   health: () => request('GET', '/api/health'),
   people: () => request('GET', '/api/people'),
+  createPerson: (body) => request('POST', '/api/people', body),
+  updatePerson: (id, body) => request('PATCH', `/api/people/${id}`, body),
+  deletePerson: (id) => request('DELETE', `/api/people/${id}`),
   weather: () => request('GET', '/api/weather'),
   events: (start, end) =>
     request('GET', `/api/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),

@@ -7,6 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { api, subscribe } from './api.js'
 import Header from './Header.jsx'
 import EventModal, { draftFrom } from './EventModal.jsx'
+import Settings from './Settings.jsx'
+import Avatar from './avatars.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -27,6 +29,7 @@ export default function App() {
   const [view, setView] = useState(DEFAULT_VIEW)
   const [title, setTitle] = useState('')
   const [draft, setDraft] = useState(null)
+  const [showSettings, setShowSettings] = useState(false)
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
@@ -64,6 +67,7 @@ export default function App() {
       clearTimeout(timer)
       timer = setTimeout(() => {
         setDraft(null)
+        setShowSettings(false)
         const cal = calRef.current?.getApi()
         if (cal) {
           cal.changeView(DEFAULT_VIEW)
@@ -161,6 +165,7 @@ export default function App() {
             style={{ '--chip': p.color }}
             onClick={() => toggle(p.id)}
           >
+            <Avatar person={p} size={36} />
             {p.name}
           </button>
         ))}
@@ -173,6 +178,9 @@ export default function App() {
         </button>
         {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
         {health?.mode === 'demo' && <span className="demo">Demo data</span>}
+        <button className="settings-btn" onClick={() => setShowSettings(true)} aria-label="Family settings">
+          ⚙ Family
+        </button>
       </div>
 
       <main className="calendar">
@@ -205,6 +213,10 @@ export default function App() {
       <button className="fab" onClick={() => setDraft(draftFrom({}))} aria-label="Add event">
         +
       </button>
+
+      {showSettings && (
+        <Settings people={people} onChanged={loadPeople} onClose={() => setShowSettings(false)} />
+      )}
 
       {draft && (
         <EventModal

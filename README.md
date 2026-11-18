@@ -11,6 +11,7 @@ colours events by family member, and shows weather.
 - Two-way sync with one Google calendar through a service account (pull every 5 minutes, writes go straight to Google)
 - Day, week, month and two-week schedule views, sized for touch
 - Colour per family member, from the event title (`Mike: Dentist`), with filter chips
+- Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
 - Live refresh: changes show on every open screen within a second

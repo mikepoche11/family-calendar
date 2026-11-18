@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS people (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     name     TEXT NOT NULL UNIQUE,
     color    TEXT NOT NULL,
+    avatar   TEXT NOT NULL DEFAULT '',
     position INTEGER NOT NULL DEFAULT 0
 );
 
@@ -43,6 +44,10 @@ class Database:
         with self.connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(SCHEMA)
+            # Migrations for databases created by earlier versions
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(people)")}
+            if "avatar" not in cols:
+                conn.execute("ALTER TABLE people ADD COLUMN avatar TEXT NOT NULL DEFAULT ''")
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -83,23 +88,28 @@ class Database:
 
     def list_people(self) -> list[dict]:
         with self.connect() as conn:
-            rows = conn.execute("SELECT id, name, color, position FROM people ORDER BY position, id").fetchall()
+            rows = conn.execute("SELECT id, name, color, avatar, position FROM people ORDER BY position, id").fetchall()
         return [dict(r) for r in rows]
 
-    def create_person(self, name: str, color: str) -> dict:
+    def create_person(self, name: str, color: str, avatar: str = "") -> dict:
         with self.connect() as conn:
             pos = conn.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM people").fetchone()[0]
-            cur = conn.execute("INSERT INTO people(name, color, position) VALUES(?, ?, ?)", (name, color, pos))
+            cur = conn.execute(
+                "INSERT INTO people(name, color, avatar, position) VALUES(?, ?, ?, ?)", (name, color, avatar, pos)
+            )
             pid = cur.lastrowid
-        return {"id": pid, "name": name, "color": color, "position": pos}
+        return {"id": pid, "name": name, "color": color, "avatar": avatar, "position": pos}
 
-    def update_person(self, pid: int, name: str | None, color: str | None) -> dict | None:
+    def update_person(
+        self, pid: int, name: str | None = None, color: str | None = None, avatar: str | None = None
+    ) -> dict | None:
         with self.connect() as conn:
-            if name is not None:
-                conn.execute("UPDATE people SET name = ? WHERE id = ?", (name, pid))
-            if color is not None:
-                conn.execute("UPDATE people SET color = ? WHERE id = ?", (color, pid))
-            row = conn.execute("SELECT id, name, color, position FROM people WHERE id = ?", (pid,)).fetchone()
+            for col, val in (("name", name), ("color", color), ("avatar", avatar)):
+                if val is not None:
+                    conn.execute(f"UPDATE people SET {col} = ? WHERE id = ?", (val, pid))
+            row = conn.execute(
+                "SELECT id, name, color, avatar, position FROM people WHERE id = ?", (pid,)
+            ).fetchone()
         return dict(row) if row else None
 
     def delete_person(self, pid: int) -> bool:

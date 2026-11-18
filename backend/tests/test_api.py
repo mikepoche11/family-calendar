@@ -74,3 +74,27 @@ def test_renaming_person_reassigns_events(client):
     events = client.get("/api/events", params={"start": "2026-12-02", "end": "2026-12-03"}).json()
     yoga = next(e for e in events if e["summary"] == "Mom: Yoga")
     assert yoga["person_id"] == mom["id"]
+
+
+def test_person_avatar_and_color(client):
+    mike = client.get("/api/people").json()[0]
+    assert mike["avatar"] == ""
+    r = client.patch(f"/api/people/{mike['id']}", json={"avatar": "fox", "color": "#ea7a2b"})
+    assert r.status_code == 200
+    assert r.json()["avatar"] == "fox" and r.json()["color"] == "#ea7a2b" and r.json()["name"] == "Mike"
+    assert client.patch(f"/api/people/{mike['id']}", json={"avatar": "<script>"}).status_code == 422
+    assert client.patch(f"/api/people/{mike['id']}", json={"color": "red"}).status_code == 422
+
+
+def test_old_database_gets_avatar_column(tmp_path):
+    import sqlite3
+
+    from app.db import Database
+
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT UNIQUE, color TEXT, position INTEGER)")
+    conn.execute("INSERT INTO people(name, color, position) VALUES('Mike', '#000000', 0)")
+    conn.commit()
+    conn.close()
+    assert Database(path).list_people()[0]["avatar"] == ""

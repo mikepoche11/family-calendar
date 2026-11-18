@@ -116,14 +116,19 @@ def st(request: Request) -> State:
 
 
 # --- models ------------------------------------------------------------------
+AVATAR = r"^[a-z0-9-]{0,32}$"  # id of a built-in avatar (frontend/src/avatars.jsx); "" = initial letter
+
+
 class PersonIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     color: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+    avatar: str = Field(default="", pattern=AVATAR)
 
 
 class PersonPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=40)
     color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    avatar: str | None = Field(default=None, pattern=AVATAR)
 
 
 class EventIn(BaseModel):
@@ -174,7 +179,7 @@ def _people_changed(s: State) -> None:
 def create_person(body: PersonIn, request: Request):
     s = st(request)
     try:
-        person = s.db.create_person(body.name.strip(), body.color)
+        person = s.db.create_person(body.name.strip(), body.color, body.avatar)
     except Exception:
         raise HTTPException(409, "A person with that name already exists")
     _people_changed(s)
@@ -184,7 +189,7 @@ def create_person(body: PersonIn, request: Request):
 @app.patch("/api/people/{pid}")
 def update_person(pid: int, body: PersonPatch, request: Request):
     s = st(request)
-    person = s.db.update_person(pid, body.name.strip() if body.name else None, body.color)
+    person = s.db.update_person(pid, body.name.strip() if body.name else None, body.color, body.avatar)
     if not person:
         raise HTTPException(404, "No such person")
     _people_changed(s)
