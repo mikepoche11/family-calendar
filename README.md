@@ -8,6 +8,8 @@ colours events by family member, and shows weather.
 
 ![Chores](docs/chores.png)
 
+![Marble jars](docs/marble-jars.png)
+
 ## What works now (phase 1)
 
 - Two-way sync with one Google calendar through a service account (pull every 5 minutes, writes go straight to Google)
@@ -16,6 +18,7 @@ colours events by family member, and shows weather.
 - Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
 - Shared grocery list: add from the wall or any phone, tap to check off, clear checked; duplicates are ignored
 - Chores: today's chores in a column per kid plus an "Anyone" column, big tap-to-check tiles, progress bars, a starter set, and an editor for who/which days. Checkmarks clear at midnight
+- Marble jars: a glass jar per kid. Blue marbles are earned and spent on rewards (big ice cream 5, small ice cream 3, Coke/Sprite/Dr Pepper 3); white marbles stay until you press Cancel out, which removes whites and blues in pairs with an animation. Undo last fixes a mis-tap, and rewards are editable
 - Photo screensaver after 10 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
@@ -67,6 +70,7 @@ npm run dev
 | GET / POST / PATCH / DELETE | `/api/people[/{id}]` | family members and colours |
 | GET / POST / PATCH / DELETE | `/api/grocery[/{id}]` | grocery items; `POST /api/grocery/clear-checked` removes checked ones |
 | GET / POST / PATCH / DELETE | `/api/chores[/{id}]` | chore list; `GET /api/chores/today` has today's chores with done state; `POST /api/chores/{id}/done`; `POST /api/chores/starter` |
+| GET / PUT | `/api/marbles`, `/api/marbles/jars` | jars and rewards; `POST /api/marbles/{person_id}/add`, `/spend`, `/cancel`, `/undo`; `/api/rewards[/{id}]` |
 | GET | `/api/weather` | current conditions and forecast |
 | POST | `/api/sync` | sync with Google now |
 | GET | `/api/stream` | Server-Sent Events: `changed` when data changes |

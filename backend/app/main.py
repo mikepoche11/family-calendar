@@ -20,6 +20,7 @@ from .db import Database
 from .demo import demo_events
 from .events import from_google, match_person, titled_for, to_google, to_utc_iso
 from .chores import Chores
+from .marbles import MarbleError, Marbles
 from .photos import Photos, PhotosError
 from .weather import Weather
 
@@ -59,6 +60,7 @@ class State:
         self.weather = Weather(settings.latitude, settings.longitude, settings.timezone, settings.temperature_unit)
         self.broadcaster = Broadcaster()
         self.chores = Chores(self.db)
+        self.marbles = Marbles(self.db)
         self.photos = Photos(
             self.db,
             settings.photos_dir,
@@ -175,6 +177,31 @@ class ChoreDone(BaseModel):
 
 class StarterIn(BaseModel):
     kid_ids: list[int]
+
+
+class JarsIn(BaseModel):
+    person_ids: list[int]
+
+
+class MarbleAdd(BaseModel):
+    color: str = Field(pattern=r"^(blue|white)$")
+    count: int = Field(default=1, ge=1, le=20)
+
+
+class SpendIn(BaseModel):
+    reward_id: int
+
+
+class RewardIn(BaseModel):
+    title: str = Field(min_length=1, max_length=40)
+    icon: str = Field(default="", max_length=16)
+    cost: int = Field(ge=1, le=100)
+
+
+class RewardPatch(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=40)
+    icon: str | None = Field(default=None, max_length=16)
+    cost: int | None = Field(default=None, ge=1, le=100)
 
 
 class EventIn(BaseModel):
@@ -471,6 +498,100 @@ def chores_starter(body: StarterIn, request: Request):
     n = s.chores.add_starter(body.kid_ids)
     s.broadcaster.publish("chores")
     return {"added": n}
+
+
+# --- marble jars -----------------------------------------------------------------
+def _marbles(s: State, fn):
+    try:
+        jar = fn()
+    except LookupError as e:
+        raise HTTPException(404, str(e))
+    except MarbleError as e:
+        raise HTTPException(409, str(e))
+    s.broadcaster.publish("marbles")
+    return jar
+
+
+@app.get("/api/marbles")
+def marbles_list(request: Request):
+    s = st(request)
+    return {"jars": s.marbles.jars(), "rewards": s.marbles.rewards()}
+
+
+@app.put("/api/marbles/jars")
+def marbles_set_jars(body: JarsIn, request: Request):
+    s = st(request)
+    for pid in body.person_ids:
+        _check_person(s, pid)
+    s.marbles.set_jars(body.person_ids)
+    s.broadcaster.publish("marbles")
+    return s.marbles.jars()
+
+
+@app.delete("/api/marbles/{pid}", status_code=204)
+def marbles_remove_jar(pid: int, request: Request):
+    s = st(request)
+    if not s.marbles.remove_jar(pid):
+        raise HTTPException(404, "No such jar")
+    s.broadcaster.publish("marbles")
+
+
+@app.post("/api/marbles/{pid}/add")
+def marbles_add(pid: int, body: MarbleAdd, request: Request):
+    s = st(request)
+    return _marbles(s, lambda: s.marbles.add(pid, body.color, body.count))
+
+
+@app.post("/api/marbles/{pid}/spend")
+def marbles_spend(pid: int, body: SpendIn, request: Request):
+    s = st(request)
+    return _marbles(s, lambda: s.marbles.spend(pid, body.reward_id))
+
+
+@app.post("/api/marbles/{pid}/cancel")
+def marbles_cancel(pid: int, request: Request):
+    s = st(request)
+    return _marbles(s, lambda: s.marbles.cancel(pid))
+
+
+@app.post("/api/marbles/{pid}/undo")
+def marbles_undo(pid: int, request: Request):
+    s = st(request)
+    return _marbles(s, lambda: s.marbles.undo(pid))
+
+
+@app.get("/api/marbles/{pid}/history")
+def marbles_history(pid: int, request: Request):
+    return st(request).marbles.history(pid)
+
+
+@app.post("/api/rewards", status_code=201)
+def rewards_create(body: RewardIn, request: Request):
+    s = st(request)
+    r = s.marbles.create_reward(body.title.strip(), body.icon.strip(), body.cost)
+    s.broadcaster.publish("marbles")
+    return r
+
+
+@app.patch("/api/rewards/{rid}")
+def rewards_update(rid: int, body: RewardPatch, request: Request):
+    s = st(request)
+    fields = body.model_dump(exclude_unset=True, exclude_none=True)
+    if "title" in fields:
+        fields["title"] = fields["title"].strip()
+    r = s.marbles.update_reward(rid, fields)
+    if not r:
+        raise HTTPException(404, "No such reward")
+    s.broadcaster.publish("marbles")
+    return r
+
+
+@app.delete("/api/rewards/{rid}", status_code=204)
+def rewards_delete(rid: int, request: Request):
+    s = st(request)
+    if not s.marbles.delete_reward(rid):
+        raise HTTPException(404, "No such reward")
+    s.broadcaster.publish("marbles")
 
 
 # --- photos ---------------------------------------------------------------------
