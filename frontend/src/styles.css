@@ -1,0 +1,121 @@
+:root {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --accent: #2563eb;
+  --danger: #dc2626;
+  --radius: 14px;
+  --touch: 56px; /* minimum touch target */
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: hidden; user-select: none; }
+
+button {
+  font: inherit;
+  min-height: var(--touch);
+  min-width: var(--touch);
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+}
+button:active { transform: scale(0.97); }
+button.on, button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { color: var(--danger); border-color: var(--danger); }
+
+.app { display: flex; flex-direction: column; height: 100%; padding: 16px 24px 24px; gap: 12px; }
+
+/* header */
+.header { display: flex; justify-content: space-between; align-items: center; }
+.clock .time { font-size: 64px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+.clock .date { font-size: 26px; color: var(--muted); margin-top: 6px; }
+.weather { display: flex; gap: 32px; align-items: center; }
+.weather .now { display: flex; align-items: center; gap: 10px; }
+.weather .now .icon { font-size: 48px; }
+.weather .now .temp { font-size: 48px; font-weight: 700; }
+.weather .now .label { font-size: 20px; color: var(--muted); }
+.weather .days { display: flex; gap: 20px; }
+.weather .day { text-align: center; font-size: 18px; }
+.weather .day .dow { color: var(--muted); }
+.weather .day .icon { font-size: 28px; }
+.weather .day .lo { color: var(--muted); }
+
+/* toolbar */
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.nav, .views { display: flex; gap: 8px; align-items: center; }
+.nav button[aria-label] { font-size: 32px; padding: 0 16px; }
+.range { font-size: 26px; font-weight: 600; margin-left: 12px; }
+
+/* people chips */
+.people, .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip {
+  border-radius: 999px;
+  border: 2px solid var(--chip, var(--accent));
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+}
+.chip.on { background: var(--chip, var(--accent)); color: #fff; border-color: var(--chip, var(--accent)); }
+.sync-error { color: var(--danger); font-size: 18px; margin-left: auto; }
+.demo { color: var(--muted); font-size: 18px; margin-left: auto; }
+
+/* calendar */
+.calendar { flex: 1; min-height: 0; background: var(--panel); border-radius: var(--radius); padding: 8px; border: 1px solid var(--line); }
+.fc { font-size: 18px; --fc-border-color: var(--line); --fc-today-bg-color: #eff6ff; --fc-now-indicator-color: var(--danger); }
+.fc .fc-timegrid-slot { height: 2.6em; }
+.fc .fc-col-header-cell-cushion { font-size: 20px; padding: 8px; }
+.fc .fc-event { border-radius: 8px; padding: 2px 4px; font-weight: 600; }
+.fc .fc-daygrid-event { font-size: 16px; }
+.fc .fc-list-event-title { font-size: 20px; }
+.fc .fc-list-day-cushion { font-size: 20px; }
+
+/* add button */
+.fab {
+  position: fixed; right: 36px; bottom: 36px;
+  width: 88px; height: 88px; border-radius: 50%;
+  font-size: 48px; padding: 0;
+  background: var(--accent); color: #fff; border: none;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  z-index: 5;
+}
+
+/* modal */
+.backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: grid; place-items: center; z-index: 10; }
+.modal { background: var(--panel); border-radius: 20px; padding: 28px; width: min(720px, 92vw); display: flex; flex-direction: column; gap: 16px; }
+.modal h2 { margin: 0; font-size: 28px; }
+.modal label { display: flex; flex-direction: column; gap: 6px; font-size: 18px; color: var(--muted); flex: 1; }
+.modal input { font: inherit; font-size: 22px; min-height: var(--touch); padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); }
+.modal .title-input { font-size: 28px; }
+.modal .row { display: flex; gap: 12px; }
+.modal .toggle { flex-direction: row; align-items: center; gap: 12px; font-size: 22px; color: var(--ink); }
+.modal .toggle input { width: 32px; height: 32px; min-height: 0; }
+.modal .field-label { font-size: 18px; color: var(--muted); }
+.modal .actions { display: flex; gap: 12px; }
+.modal .spacer { flex: 1; }
+.modal .note { color: var(--muted); margin: 0; }
+.modal .error { color: var(--danger); margin: 0; font-size: 18px; }
+
+/* phones */
+@media (max-width: 700px) {
+  :root { --touch: 48px; }
+  .app { padding: 12px; }
+  .clock .time { font-size: 40px; }
+  .clock .date { font-size: 18px; }
+  .weather .days { display: none; }
+  .weather .now .icon, .weather .now .temp { font-size: 32px; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .range { font-size: 18px; }
+  button { font-size: 16px; padding: 0 12px; }
+  .modal .row { flex-direction: column; }
+}

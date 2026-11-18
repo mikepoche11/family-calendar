@@ -1,0 +1,11 @@
+services:
+  calendar:
+    build: .
+    container_name: family-calendar
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      - ./data:/data                 # SQLite database lives here: back this folder up
+      - ./secrets:/secrets:ro        # google-service-account.json goes here (never committed)
