@@ -13,15 +13,18 @@ Check that touch works on the desktop before going further. Most USB touch monit
 
 ## 2. Get the code and run setup
 
+The repository is private, so the Pi needs to sign in to GitHub once. The GitHub CLI makes that easy:
+
 ```bash
-sudo apt-get install -y git
-git clone https://github.com/mikepoche11/family-calendar.git
+sudo apt-get install -y git gh
+gh auth login          # choose GitHub.com > HTTPS > "Login with a web browser", enter the code on your phone
+gh repo clone mikepoche11/family-calendar
 cd family-calendar
 ./kiosk/setup-pi.sh
 ```
 
 This installs Chromium, emoji fonts and Docker, sets the time zone to Central, starts the kiosk on
-login, turns the screen off at 22:00 and on at 06:00, and restarts Chromium nightly at 03:30.
+login, turns the screen off at 9 PM (21:00) and on at 6 AM (06:00), and restarts Chromium nightly at 03:30.
 Change the times with `--screen-off 21:30 --screen-on 06:30`.
 
 ## 3. Start the backend

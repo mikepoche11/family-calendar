@@ -38,7 +38,7 @@ class Settings:
     google_oauth_client_secret: str = field(default_factory=lambda: _env("GOOGLE_OAUTH_CLIENT_SECRET"))
     # The address you sign in from; must match the redirect URI registered with Google
     public_url: str = field(default_factory=lambda: _env("PUBLIC_URL", "http://localhost:8000").rstrip("/"))
-    screensaver_minutes: float = field(default_factory=lambda: float(_env("SCREENSAVER_MINUTES", "5")))
+    screensaver_minutes: float = field(default_factory=lambda: float(_env("SCREENSAVER_MINUTES", "10")))
     slide_seconds: float = field(default_factory=lambda: float(_env("SLIDE_SECONDS", "15")))
 
     # Serve the built wall UI from here when it exists

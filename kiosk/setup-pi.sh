@@ -4,11 +4,11 @@
 #   ./kiosk/setup-pi.sh                         # Pi runs everything (recommended)
 #   ./kiosk/setup-pi.sh --url http://192.168.1.20:8000   # thin client: backend on the Linux PC
 #
-# Options: --url URL   --screen-off HH:MM (default 22:00)   --screen-on HH:MM (default 06:00)
+# Options: --url URL   --screen-off HH:MM (default 21:00)   --screen-on HH:MM (default 06:00)
 set -euo pipefail
 
 URL="http://localhost:8000"
-OFF="22:00"
+OFF="21:00"
 ON="06:00"
 while [ $# -gt 0 ]; do
   case "$1" in

@@ -1,6 +1,6 @@
 # Photo screensaver
 
-After a few minutes without a touch (`SCREENSAVER_MINUTES`, default 5), the wall shows a full-screen
+After a few minutes without a touch (`SCREENSAVER_MINUTES`, default 10), the wall shows a full-screen
 slideshow with a clock. Tap anywhere to get back to the calendar. Photos come from two places:
 
 - **Google Photos**, through Google's Photo Picker: you choose photos on your phone and the app
