@@ -5,8 +5,9 @@ import Avatar from './avatars.jsx'
 // Inside of the glass, in px. Marbles are laid out from the bottom up.
 const JAR_W = 216
 const JAR_H = 268
-const LEAVE_MS = 1700 // length of one leaving marble's animation
-const STAGGER_MS = 220 // delay between pairs leaving
+const LEAVE_MS = 3200 // rise out, line up and pause, then disappear
+const STAGGER_MS = 80 // delay between pairs starting to rise
+const INSIDE_TOP = 36 // px from the top of the lid to the top of the jar's inside
 
 /** Same rule as the backend: remove the top-most n marbles of one color. Returns removed indices. */
 function topIndices(contents, color, n) {
@@ -48,6 +49,33 @@ function layout(n) {
     row++
   }
   return { size, pos }
+}
+
+/**
+ * Where each leaving marble waits above the jar (centre point, in jar-inside coordinates).
+ * Cancel out: pairs side by side, white on the left of its blue. Spend: blues in a row.
+ */
+function lineup(leaving, size) {
+  const L = Math.min(size, 26)
+  const pairs = leaving.white.length > 0
+  const n = pairs ? Math.min(leaving.white.length, leaving.blue.length) : leaving.blue.length
+  const slotW = pairs ? 2 * L + 18 : L + 8
+  const perRow = Math.max(1, Math.floor((JAR_W + 80) / slotW))
+  const out = {}
+  for (let k = 0; k < n; k++) {
+    const row = Math.floor(k / perRow)
+    const inRow = Math.min(perRow, n - row * perRow)
+    const cx = JAR_W / 2 + ((k % perRow) - (inRow - 1) / 2) * slotW
+    const cy = -INSIDE_TOP - 14 - L / 2 - row * (L + 10)
+    const order = k
+    if (pairs) {
+      out[leaving.white[k]] = { x: cx - L / 2 - 2, y: cy, scale: L / size, order }
+      out[leaving.blue[k]] = { x: cx + L / 2 + 2, y: cy, scale: L / size, order }
+    } else {
+      out[leaving.blue[k]] = { x: cx, y: cy, scale: L / size, order }
+    }
+  }
+  return out
 }
 
 /** Marble jars, one per kid. Blue = good and spendable, white = stays until cancelled out. */
@@ -237,13 +265,8 @@ function Jar({ jar, person, leaving }) {
   }, [contents])
 
   const { size, pos } = useMemo(() => layout(contents.length), [contents.length])
-  const order = useMemo(() => {
-    if (!leaving) return {}
-    const o = {}
-    leaving.white.forEach((i, k) => (o[i] = k))
-    leaving.blue.forEach((i, k) => (o[i] = k))
-    return o
-  }, [leaving])
+  // Leaving marbles rise out and line up above the lid, white next to its blue, then pause
+  const targets = useMemo(() => (leaving ? lineup(leaving, size) : {}), [leaving, size])
 
   return (
     <div className="jar" aria-label={`${person.name}'s jar: ${jar.blue} blue, ${jar.white} white`}>
@@ -251,11 +274,9 @@ function Jar({ jar, person, leaving }) {
       <div className="jar-glass">
         <div className="jar-inside" style={{ width: JAR_W, height: JAR_H }}>
           {pos.map((p, i) => {
-            const isLeaving = i in order
+            const t = targets[i]
             const color = contents[i] === 'b' ? 'blue' : 'white'
-            const cls = `marble ${color} ${isLeaving ? 'leave' : ''} ${i >= newFrom ? 'drop' : ''}`
-            // Pairs leave together: whites drift right, blues drift left, toward the middle
-            const drift = isLeaving ? (JAR_W / 2 - p.x - size / 2) * 0.6 + (color === 'white' ? 14 : -14) : 0
+            const cls = `marble ${color} ${t ? 'leave' : ''} ${i >= newFrom ? 'drop' : ''}`
             return (
               <span
                 key={i}
@@ -266,9 +287,10 @@ function Jar({ jar, person, leaving }) {
                   left: p.x,
                   top: p.y,
                   '--drop': `${-p.y - size - 40}px`,
-                  '--rise': `${-p.y - size - 190}px`,
-                  '--drift': `${drift}px`,
-                  animationDelay: isLeaving ? `${order[i] * STAGGER_MS}ms` : undefined,
+                  '--tx': t ? `${t.x - p.x - size / 2}px` : undefined,
+                  '--ty': t ? `${t.y - p.y - size / 2}px` : undefined,
+                  '--k': t ? t.scale : undefined,
+                  animationDelay: t ? `${t.order * STAGGER_MS}ms` : undefined,
                 }}
               />
             )

@@ -244,7 +244,7 @@ a.button.primary { background: var(--accent); color: #fff; }
 .marbles { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .marbles > .error { color: var(--danger); margin: 0; font-size: 18px; }
 .jars { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
-.jar-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.jar-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 52px 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .jar { position: relative; width: 244px; padding-top: 22px; }
 .jar-lid { position: absolute; top: 0; left: 30px; right: 30px; height: 30px; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, color-mix(in srgb, var(--chip) 85%, white), var(--chip)); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15); z-index: 3; }
 .jar-glass { position: relative; height: 296px; border: 4px solid #c7d2e0; border-top-width: 6px; border-radius: 28px 28px 44px 44px; background: linear-gradient(90deg, rgba(219,234,254,0.55), rgba(255,255,255,0.25) 40%, rgba(219,234,254,0.5)); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7), 0 6px 16px rgba(15,23,42,0.08); }
@@ -255,7 +255,7 @@ a.button.primary { background: var(--accent); color: #fff; }
 .marble.blue { background: radial-gradient(circle at 32% 28%, #dbeafe 0 9%, #60a5fa 24%, #2563eb 55%, #1e3a8a 100%); box-shadow: inset -2px -3px 4px rgba(15,23,42,0.35), 0 1px 1px rgba(15,23,42,0.2); }
 .marble.white { background: radial-gradient(circle at 32% 28%, #ffffff 0 14%, #f1f5f9 40%, #cbd5e1 78%, #94a3b8 100%); box-shadow: inset -2px -3px 4px rgba(15,23,42,0.22), 0 1px 1px rgba(15,23,42,0.2); }
 .marble.drop { animation: marble-drop 0.6s cubic-bezier(0.3, 0, 0.6, 1) both; }
-.marble.leave { animation: marble-leave 1.7s ease-in-out forwards; z-index: 4; }
+.marble.leave { animation: marble-leave 3.2s ease-in-out forwards; z-index: 4; }
 @keyframes marble-drop {
   0% { transform: translateY(var(--drop)); }
   75% { transform: translateY(4px); }
@@ -263,11 +263,13 @@ a.button.primary { background: var(--accent); color: #fff; }
 }
 @keyframes marble-leave {
   0% { transform: translate(0, 0) scale(1); opacity: 1; }
-  25% { transform: translate(var(--drift), -24px) scale(1.25); opacity: 1; filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.9)); }
-  75% { opacity: 1; }
-  100% { transform: translate(var(--drift), var(--rise)) scale(0.5); opacity: 0; }
+  28% { transform: translate(var(--tx), var(--ty)) scale(var(--k)); opacity: 1; }
+  34% { transform: translate(var(--tx), var(--ty)) scale(calc(var(--k) * 1.15)); filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.95)); }
+  40%, 80% { transform: translate(var(--tx), var(--ty)) scale(var(--k)); opacity: 1; filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.8)); }
+  88% { transform: translate(var(--tx), var(--ty)) scale(calc(var(--k) * 1.3)); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
 }
-.jar-bubble { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; font-weight: 700; font-size: 18px; padding: 8px 16px; border-radius: 999px; white-space: nowrap; z-index: 5; animation: bubble 0.3s ease both; }
+.jar-bubble { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; font-weight: 700; font-size: 18px; padding: 8px 16px; border-radius: 999px; white-space: nowrap; z-index: 5; animation: bubble 0.3s ease both; }
 @keyframes bubble { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .jar-counts { display: flex; gap: 20px; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dot { display: inline-block; width: 18px; height: 18px; border-radius: 50%; vertical-align: -3px; }
