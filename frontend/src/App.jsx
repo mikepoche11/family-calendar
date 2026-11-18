@@ -11,6 +11,7 @@ import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
 import Screensaver from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
+import Chores from './Chores.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -42,6 +43,7 @@ export default function App() {
   const [screensaver, setScreensaver] = useState(false)
   const [section, setSection] = useState('calendar')
   const [groceryVersion, setGroceryVersion] = useState(0)
+  const [choresVersion, setChoresVersion] = useState(0)
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
@@ -61,9 +63,13 @@ export default function App() {
     const w = setInterval(loadWeather, 15 * 60 * 1000)
     const h = setInterval(loadHealth, 60 * 1000)
     const unsubscribe = subscribe((kind) => {
-      if (kind === 'people') loadPeople()
+      if (kind === 'people') {
+        loadPeople()
+        setChoresVersion((v) => v + 1)
+      }
       if (kind === 'photos') return loadPhotos()
       if (kind === 'grocery') return setGroceryVersion((v) => v + 1)
+      if (kind === 'chores') return setChoresVersion((v) => v + 1)
       refetch()
     })
     return () => {
@@ -183,10 +189,14 @@ export default function App() {
           <button className={section === 'grocery' ? 'on' : ''} onClick={() => setSection('grocery')}>
             🛒 Grocery
           </button>
+          <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
+            ✅ Chores
+          </button>
         </nav>
       </Header>
 
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
+      {section === 'chores' && <Chores people={people} version={choresVersion} />}
 
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
       <div className="toolbar">

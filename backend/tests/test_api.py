@@ -119,3 +119,17 @@ def test_grocery_list(client):
     assert client.post("/api/grocery", json={"text": "   "}).status_code == 422
     assert client.delete(f"/api/grocery/{eggs['id']}").status_code == 204
     assert client.get("/api/grocery").json() == []
+
+
+def test_chores_api(client):
+    people = {p["name"]: p["id"] for p in client.get("/api/people").json()}
+    r = client.post("/api/chores/starter", json={"kid_ids": [people["Ava"]]})
+    assert r.status_code == 201 and r.json()["added"] == 8
+    today = client.get("/api/chores/today").json()
+    bed = next(c for c in today["chores"] if c["title"] == "Make bed")
+    assert client.post(f"/api/chores/{bed['id']}/done", json={"done": True}).status_code == 200
+    again = client.get("/api/chores/today").json()
+    assert next(c for c in again["chores"] if c["id"] == bed["id"])["done_by"] == people["Ava"]
+    assert client.patch(f"/api/chores/{bed['id']}", json={"anyone": True}).json()["person_id"] is None
+    assert client.post("/api/chores", json={"title": "x", "days": "78"}).status_code == 422
+    assert client.post("/api/chores", json={"title": "x", "person_id": 999}).status_code == 422

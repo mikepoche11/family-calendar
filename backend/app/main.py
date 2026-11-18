@@ -19,6 +19,7 @@ from .config import Settings, get_settings
 from .db import Database
 from .demo import demo_events
 from .events import from_google, match_person, titled_for, to_google, to_utc_iso
+from .chores import Chores
 from .photos import Photos, PhotosError
 from .weather import Weather
 
@@ -57,6 +58,7 @@ class State:
         self.db.seed_people(settings.people_seed)
         self.weather = Weather(settings.latitude, settings.longitude, settings.timezone, settings.temperature_unit)
         self.broadcaster = Broadcaster()
+        self.chores = Chores(self.db)
         self.photos = Photos(
             self.db,
             settings.photos_dir,
@@ -146,6 +148,33 @@ class GroceryIn(BaseModel):
 class GroceryPatch(BaseModel):
     text: str | None = Field(default=None, min_length=1, max_length=120)
     done: bool | None = None
+
+
+DAYS = r"^[0-6]{1,7}$"
+
+
+class ChoreIn(BaseModel):
+    title: str = Field(min_length=1, max_length=80)
+    icon: str = Field(default="", max_length=16)
+    person_id: int | None = None  # None = anyone
+    days: str = Field(default="0123456", pattern=DAYS)  # Monday = 0
+
+
+class ChorePatch(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=80)
+    icon: str | None = Field(default=None, max_length=16)
+    person_id: int | None = None
+    anyone: bool = False  # set to make the chore "anyone" (person_id null)
+    days: str | None = Field(default=None, pattern=DAYS)
+
+
+class ChoreDone(BaseModel):
+    done: bool
+    person_id: int | None = None  # who did an "anyone" chore
+
+
+class StarterIn(BaseModel):
+    kid_ids: list[int]
 
 
 class EventIn(BaseModel):
@@ -366,6 +395,82 @@ def grocery_clear_checked(request: Request):
     n = s.db.clear_checked_grocery()
     s.broadcaster.publish("grocery")
     return {"deleted": n}
+
+
+# --- chores -------------------------------------------------------------------------
+def _today(s: State):
+    return datetime.now(ZoneInfo(s.settings.timezone)).date()
+
+
+def _check_person(s: State, pid: int | None) -> None:
+    if pid is not None and pid not in {p["id"] for p in s.db.list_people()}:
+        raise HTTPException(422, "Unknown person")
+
+
+@app.get("/api/chores")
+def chores_list(request: Request):
+    return st(request).chores.list()
+
+
+@app.get("/api/chores/today")
+def chores_today(request: Request):
+    s = st(request)
+    today = _today(s)
+    return {"date": today.isoformat(), "chores": s.chores.for_day(today)}
+
+
+@app.post("/api/chores", status_code=201)
+def chores_create(body: ChoreIn, request: Request):
+    s = st(request)
+    _check_person(s, body.person_id)
+    chore = s.chores.create(body.title.strip(), body.icon.strip(), body.person_id, body.days)
+    s.broadcaster.publish("chores")
+    return chore
+
+
+@app.patch("/api/chores/{cid}")
+def chores_update(cid: int, body: ChorePatch, request: Request):
+    s = st(request)
+    fields = body.model_dump(exclude_unset=True, exclude={"anyone"})
+    if body.anyone:
+        fields["person_id"] = None
+    elif "person_id" in fields:
+        _check_person(s, fields["person_id"])
+    if "title" in fields:
+        fields["title"] = fields["title"].strip()
+    chore = s.chores.update(cid, fields)
+    if not chore:
+        raise HTTPException(404, "No such chore")
+    s.broadcaster.publish("chores")
+    return chore
+
+
+@app.delete("/api/chores/{cid}", status_code=204)
+def chores_delete(cid: int, request: Request):
+    s = st(request)
+    if not s.chores.delete(cid):
+        raise HTTPException(404, "No such chore")
+    s.broadcaster.publish("chores")
+
+
+@app.post("/api/chores/{cid}/done")
+def chores_done(cid: int, body: ChoreDone, request: Request):
+    s = st(request)
+    _check_person(s, body.person_id)
+    if not s.chores.set_done(cid, _today(s), body.done, body.person_id):
+        raise HTTPException(404, "No such chore")
+    s.broadcaster.publish("chores")
+    return {"ok": True}
+
+
+@app.post("/api/chores/starter", status_code=201)
+def chores_starter(body: StarterIn, request: Request):
+    s = st(request)
+    for pid in body.kid_ids:
+        _check_person(s, pid)
+    n = s.chores.add_starter(body.kid_ids)
+    s.broadcaster.publish("chores")
+    return {"added": n}
 
 
 # --- photos ---------------------------------------------------------------------
