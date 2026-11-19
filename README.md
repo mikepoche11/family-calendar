@@ -6,11 +6,11 @@ colours events by family member, and shows weather.
 
 ![Week view](docs/week-view.png)
 
+![Phone view](docs/phone-view.png)
+
 ![Chores](docs/chores.png)
 
 ![Marble jars](docs/marble-jars.png)
-
-![Phone view](docs/phone-view.png)
 
 ## What works now (phase 1)
 
@@ -29,7 +29,7 @@ colours events by family member, and shows weather.
 - Returns to this week after 2 minutes untouched
 - Demo mode with sample events when no Google credentials are configured
 
-Planned next: meal planning, and forwarding school emails to create events. See the strategy doc in the
+Planned next: chores, marble jars, phone layout as an installable app, meal planning, and forwarding school emails to create events. See the strategy doc in the
 project for the full plan.
 
 ## Layout
@@ -46,7 +46,6 @@ project for the full plan.
 1. [Raspberry Pi kiosk](docs/pi-setup.md)
 2. [Connect the Google calendar](docs/google-setup.md)
 3. [Photo screensaver](docs/photos-setup.md) (optional)
-4. [Phones: home Wi-Fi and Tailscale](docs/phone-setup.md)
 
 ## Develop
 

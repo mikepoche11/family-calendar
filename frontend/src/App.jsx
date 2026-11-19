@@ -9,11 +9,11 @@ import Header from './Header.jsx'
 import EventModal, { draftFrom } from './EventModal.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
+import useIsPhone from './useIsPhone.js'
 import Screensaver from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
 import Marbles from './Marbles.jsx'
-import useIsPhone from './useIsPhone.js'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
