@@ -10,6 +10,8 @@ colours events by family member, and shows weather.
 
 ![Marble jars](docs/marble-jars.png)
 
+![Meal plan](docs/meal-plan.png)
+
 ## What works now (phase 1)
 
 - Two-way sync with one Google calendar through a service account (pull every 5 minutes, writes go straight to Google)
@@ -17,6 +19,7 @@ colours events by family member, and shows weather.
 - Colour per family member, from the event title (`Mike: Dentist`), with filter chips
 - Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
 - Shared grocery list: add from the wall or any phone, tap to check off, clear checked; duplicates are ignored
+- Meal plan: a dinner card for each night of the week with the meal's ingredients, a box of the family's saved meals (starter set included), "Fill empty nights", free dinner ideas and search from TheMealDB, and one tap to send a night's or the whole week's ingredients to the grocery list (skips what's already on it). See [docs/meal-planning.md](docs/meal-planning.md)
 - Chores: today's chores in a column per kid plus an "Anyone" column, big tap-to-check tiles, progress bars, a starter set, and an editor for who/which days. Checkmarks clear at midnight
 - Marble jars: a glass jar per kid. Blue marbles are earned and spent on rewards (big ice cream 5, small ice cream 3, Coke/Sprite/Dr Pepper 3); white marbles stay until you press Cancel out, which removes whites and blues in pairs with an animation. Undo last fixes a mis-tap, and rewards are editable
 - Photo screensaver after 10 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
@@ -26,7 +29,7 @@ colours events by family member, and shows weather.
 - Returns to this week after 2 minutes untouched
 - Demo mode with sample events when no Google credentials are configured
 
-Planned next: chores, marble jars, phone layout as an installable app, meal planning, and forwarding school emails to create events. See the strategy doc in the
+Planned next: phone layout as an installable app and forwarding school emails to create events. See the strategy doc in the
 project for the full plan.
 
 ## Layout
@@ -43,6 +46,7 @@ project for the full plan.
 1. [Raspberry Pi kiosk](docs/pi-setup.md)
 2. [Connect the Google calendar](docs/google-setup.md)
 3. [Photo screensaver](docs/photos-setup.md) (optional)
+4. [Meal planning](docs/meal-planning.md) (how to use it)
 
 ## Develop
 
@@ -70,6 +74,8 @@ npm run dev
 | GET / POST / PATCH / DELETE | `/api/people[/{id}]` | family members and colours |
 | GET / POST / PATCH / DELETE | `/api/grocery[/{id}]` | grocery items; `POST /api/grocery/clear-checked` removes checked ones |
 | GET / POST / PATCH / DELETE | `/api/chores[/{id}]` | chore list; `GET /api/chores/today` has today's chores with done state; `POST /api/chores/{id}/done`; `POST /api/chores/starter` |
+| GET / POST / PATCH / DELETE | `/api/meals[/{id}]` | saved meals; `POST /api/meals/starter`; `GET /api/meals/ideas?q=` (TheMealDB) |
+| GET / PUT | `/api/meal-plan`, `/api/meal-plan/{date}` | the week's dinners (`?start=YYYY-MM-DD`); `POST /api/meal-plan/fill`; `POST /api/grocery/bulk` adds many lines |
 | GET / PUT | `/api/marbles`, `/api/marbles/jars` | jars and rewards; `POST /api/marbles/{person_id}/add`, `/spend`, `/cancel`, `/undo`; `/api/rewards[/{id}]` |
 | GET | `/api/weather` | current conditions and forecast |
 | POST | `/api/sync` | sync with Google now |

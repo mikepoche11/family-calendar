@@ -207,6 +207,27 @@ class Database:
             row = conn.execute("SELECT id, text, done, created_at, done_at FROM grocery WHERE id = ?", (gid,)).fetchone()
         return dict(row) | {"done": bool(row["done"])}
 
+    def add_grocery_lines(self, lines: list[str]) -> dict:
+        """Add many lines; skip any whose item is already on the open list.
+
+        "Onion (2)" counts as already there when "onion" or "Onion (1)" is unchecked on the list.
+        """
+        added, skipped = [], []
+        with self.connect() as conn:
+            have = {_item_key(r["text"]) for r in conn.execute("SELECT text FROM grocery WHERE done = 0")}
+            for line in lines:
+                text = " ".join(line.split())[:120]
+                if not text:
+                    continue
+                key = _item_key(text)
+                if key in have:
+                    skipped.append(text)
+                    continue
+                have.add(key)
+                conn.execute("INSERT INTO grocery(text) VALUES(?)", (text,))
+                added.append(text)
+        return {"added": added, "skipped": skipped}
+
     def update_grocery(self, gid: int, text: str | None = None, done: bool | None = None) -> dict | None:
         with self.connect() as conn:
             if text is not None:
@@ -227,6 +248,11 @@ class Database:
     def clear_checked_grocery(self) -> int:
         with self.connect() as conn:
             return conn.execute("DELETE FROM grocery WHERE done = 1").rowcount
+
+
+def _item_key(text: str) -> str:
+    """'Chicken thighs (2 lb)' -> 'chicken thighs': the part before any amount in brackets."""
+    return text.split("(")[0].strip().lower()
 
 
 def _event_row(row: sqlite3.Row) -> dict:

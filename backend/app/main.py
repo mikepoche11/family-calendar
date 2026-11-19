@@ -21,6 +21,8 @@ from .demo import demo_events
 from .events import from_google, match_person, titled_for, to_google, to_utc_iso
 from .chores import Chores
 from .marbles import MarbleError, Marbles
+from .mealdb import IdeasError, MealIdeas
+from .meals import Meals, week_start
 from .photos import Photos, PhotosError
 from .weather import Weather
 
@@ -61,6 +63,8 @@ class State:
         self.broadcaster = Broadcaster()
         self.chores = Chores(self.db)
         self.marbles = Marbles(self.db)
+        self.meals = Meals(self.db)
+        self.ideas = MealIdeas()
         self.photos = Photos(
             self.db,
             settings.photos_dir,
@@ -152,6 +156,10 @@ class GroceryPatch(BaseModel):
     done: bool | None = None
 
 
+class GroceryBulk(BaseModel):
+    items: list[str] = Field(max_length=100)
+
+
 DAYS = r"^[0-6]{1,7}$"
 
 
@@ -202,6 +210,26 @@ class RewardPatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=40)
     icon: str | None = Field(default=None, max_length=16)
     cost: int | None = Field(default=None, ge=1, le=100)
+
+
+class MealIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    icon: str = Field(default="", max_length=16)
+    ingredients: list[str] = Field(default_factory=list, max_length=40)
+    url: str = Field(default="", max_length=500)
+    image: str = Field(default="", max_length=500)
+
+
+class MealPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    icon: str | None = Field(default=None, max_length=16)
+    ingredients: list[str] | None = Field(default=None, max_length=40)
+    url: str | None = Field(default=None, max_length=500)
+    image: str | None = Field(default=None, max_length=500)
+
+
+class PlanDay(BaseModel):
+    meal_id: int | None = None  # None clears the night
 
 
 class EventIn(BaseModel):
@@ -424,6 +452,16 @@ def grocery_clear_checked(request: Request):
     return {"deleted": n}
 
 
+@app.post("/api/grocery/bulk")
+def grocery_bulk(body: GroceryBulk, request: Request):
+    """Add several lines at once (a meal's ingredients); skips things already on the list."""
+    s = st(request)
+    result = s.db.add_grocery_lines([t for t in body.items if t.strip()])
+    if result["added"]:
+        s.broadcaster.publish("grocery")
+    return result
+
+
 # --- chores -------------------------------------------------------------------------
 def _today(s: State):
     return datetime.now(ZoneInfo(s.settings.timezone)).date()
@@ -592,6 +630,111 @@ def rewards_delete(rid: int, request: Request):
     if not s.marbles.delete_reward(rid):
         raise HTTPException(404, "No such reward")
     s.broadcaster.publish("marbles")
+
+
+# --- meals ------------------------------------------------------------------------
+def _parse_day(value: str):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(422, "Dates must be YYYY-MM-DD")
+
+
+def _check_url(url: str | None) -> None:
+    if url and not url.startswith(("http://", "https://")):
+        raise HTTPException(422, "Links must start with http:// or https://")
+
+
+@app.get("/api/meals")
+def meals_list(request: Request):
+    return st(request).meals.list()
+
+
+@app.post("/api/meals", status_code=201)
+def meals_create(body: MealIn, request: Request):
+    s = st(request)
+    _check_url(body.url)
+    _check_url(body.image)
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(422, "Give the meal a name")
+    meal = s.meals.create(name, body.icon.strip(), body.ingredients, body.url.strip(), body.image.strip())
+    s.broadcaster.publish("meals")
+    return meal
+
+
+@app.patch("/api/meals/{mid}")
+def meals_update(mid: int, body: MealPatch, request: Request):
+    s = st(request)
+    fields = body.model_dump(exclude_unset=True, exclude_none=True)
+    _check_url(fields.get("url"))
+    _check_url(fields.get("image"))
+    for k in ("name", "icon", "url"):
+        if k in fields:
+            fields[k] = fields[k].strip()
+    if fields.get("name") == "":
+        raise HTTPException(422, "Give the meal a name")
+    if not s.meals.get(mid):
+        raise HTTPException(404, "No such meal")
+    try:
+        meal = s.meals.update(mid, fields)
+    except Exception:
+        raise HTTPException(409, "There's already a meal with that name")
+    s.broadcaster.publish("meals")
+    return meal
+
+
+@app.delete("/api/meals/{mid}", status_code=204)
+def meals_delete(mid: int, request: Request):
+    s = st(request)
+    if not s.meals.delete(mid):
+        raise HTTPException(404, "No such meal")
+    s.broadcaster.publish("meals")
+
+
+@app.post("/api/meals/starter", status_code=201)
+def meals_starter(request: Request):
+    s = st(request)
+    n = s.meals.add_starter()
+    s.broadcaster.publish("meals")
+    return {"added": n}
+
+
+@app.get("/api/meals/ideas")
+async def meals_ideas(request: Request, q: str = ""):
+    s = st(request)
+    q = q.strip()[:60]
+    try:
+        ideas = await (s.ideas.search(q) if q else s.ideas.random())
+    except IdeasError as exc:
+        raise HTTPException(503, str(exc))
+    return {"ideas": ideas}
+
+
+@app.get("/api/meal-plan")
+def meal_plan(request: Request, start: str = ""):
+    s = st(request)
+    today = _today(s)
+    first = week_start(_parse_day(start) if start else today)
+    return {"start": first.isoformat(), "today": today.isoformat(), "days": s.meals.week(first)}
+
+
+@app.put("/api/meal-plan/{day}")
+def meal_plan_set(day: str, body: PlanDay, request: Request):
+    s = st(request)
+    if not s.meals.set_day(_parse_day(day), body.meal_id):
+        raise HTTPException(404, "No such meal")
+    s.broadcaster.publish("meals")
+    return {"ok": True}
+
+
+@app.post("/api/meal-plan/fill")
+def meal_plan_fill(request: Request, start: str = ""):
+    s = st(request)
+    first = week_start(_parse_day(start) if start else _today(s))
+    n = s.meals.fill_week(first)
+    s.broadcaster.publish("meals")
+    return {"filled": n}
 
 
 # --- photos ---------------------------------------------------------------------

@@ -13,6 +13,7 @@ import Screensaver from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
 import Marbles from './Marbles.jsx'
+import Meals from './Meals.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -46,6 +47,7 @@ export default function App() {
   const [groceryVersion, setGroceryVersion] = useState(0)
   const [choresVersion, setChoresVersion] = useState(0)
   const [marblesVersion, setMarblesVersion] = useState(0)
+  const [mealsVersion, setMealsVersion] = useState(0)
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
@@ -74,6 +76,7 @@ export default function App() {
       if (kind === 'grocery') return setGroceryVersion((v) => v + 1)
       if (kind === 'chores') return setChoresVersion((v) => v + 1)
       if (kind === 'marbles') return setMarblesVersion((v) => v + 1)
+      if (kind === 'meals') return setMealsVersion((v) => v + 1)
       refetch()
     })
     return () => {
@@ -193,6 +196,9 @@ export default function App() {
           <button className={section === 'grocery' ? 'on' : ''} onClick={() => setSection('grocery')}>
             🛒 Grocery
           </button>
+          <button className={section === 'meals' ? 'on' : ''} onClick={() => setSection('meals')}>
+            🍽️ Meals
+          </button>
           <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
             ✅ Chores
           </button>
@@ -204,6 +210,7 @@ export default function App() {
 
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
+      {section === 'meals' && <Meals version={mealsVersion} />}
       {section === 'marbles' && <Marbles people={people} version={marblesVersion} />}
 
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
