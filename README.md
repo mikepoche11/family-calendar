@@ -22,7 +22,7 @@ colours events by family member, and shows weather.
 - Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
 - Shared grocery list: add from the wall or any phone, tap to check off, clear checked; duplicates are ignored
 - Meal plan: a dinner card for each night of the week with the meal's ingredients, a box of the family's saved meals (starter set included), "Fill empty nights", free dinner ideas and search from TheMealDB, and one tap to send a night's or the whole week's ingredients to the grocery list (skips what's already on it). See [docs/meal-planning.md](docs/meal-planning.md)
-- Chores: today's chores in a column per kid plus an "Anyone" column, big tap-to-check tiles, progress bars, a starter set, and an editor for who/which days. Checkmarks clear at midnight
+- Chores: today's chores in a column per kid plus an "Anyone" column, big tap-to-check tiles, progress bars, a starter set, and an editor for who/which days. Checkmarks clear at midnight. A chore can be worth blue marbles that drop into the kid's jar when it's checked off ([how it works](docs/chore-marbles.md))
 - Marble jars: a glass jar per kid. Blue marbles are earned and spent on rewards (big ice cream 5, small ice cream 3, Coke/Sprite/Dr Pepper 3); white marbles stay until you press Cancel out, which removes whites and blues in pairs with an animation. Undo last fixes a mis-tap, and rewards are editable
 - Photo screensaver after 10 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
@@ -76,7 +76,7 @@ npm run dev
 | POST / PATCH / DELETE | `/api/events[/{id}]` | create, edit, delete (written to Google) |
 | GET / POST / PATCH / DELETE | `/api/people[/{id}]` | family members and colours |
 | GET / POST / PATCH / DELETE | `/api/grocery[/{id}]` | grocery items; `POST /api/grocery/clear-checked` removes checked ones |
-| GET / POST / PATCH / DELETE | `/api/chores[/{id}]` | chore list; `GET /api/chores/today` has today's chores with done state; `POST /api/chores/{id}/done`; `POST /api/chores/starter` |
+| GET / POST / PATCH / DELETE | `/api/chores[/{id}]` | chore list; `GET /api/chores/today` has today's chores with done state; `POST /api/chores/{id}/done` (returns any marble jar changes); `POST /api/chores/starter` |
 | GET / POST / PATCH / DELETE | `/api/meals[/{id}]` | saved meals; `POST /api/meals/starter`; `GET /api/meals/ideas?q=` (TheMealDB) |
 | GET / PUT | `/api/meal-plan`, `/api/meal-plan/{date}` | the week's dinners (`?start=YYYY-MM-DD`); `POST /api/meal-plan/fill`; `POST /api/grocery/bulk` adds many lines |
 | GET / PUT | `/api/marbles`, `/api/marbles/jars` | jars and rewards; `POST /api/marbles/{person_id}/add`, `/spend`, `/cancel`, `/undo`; `/api/rewards[/{id}]` |
