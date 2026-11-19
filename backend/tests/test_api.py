@@ -130,6 +130,7 @@ def test_chores_api(client):
     assert client.post(f"/api/chores/{bed['id']}/done", json={"done": True}).status_code == 200
     again = client.get("/api/chores/today").json()
     assert next(c for c in again["chores"] if c["id"] == bed["id"])["done_by"] == people["Ava"]
+    assert client.patch(f"/api/chores/{bed['id']}", json={"marbles": 21}).status_code == 422
     assert client.patch(f"/api/chores/{bed['id']}", json={"anyone": True}).json()["person_id"] is None
     assert client.post("/api/chores", json={"title": "x", "days": "78"}).status_code == 422
     assert client.post("/api/chores", json={"title": "x", "person_id": 999}).status_code == 422
@@ -155,3 +156,14 @@ def test_marbles_api(client):
     r = client.post("/api/rewards", json={"title": "Movie night", "icon": "🎬", "cost": 10}).json()
     assert client.patch(f"/api/rewards/{r['id']}", json={"cost": 8}).json()["cost"] == 8
     assert client.delete(f"/api/rewards/{r['id']}").status_code == 204
+
+
+def test_chore_marbles_api(client):
+    ava = {p["name"]: p["id"] for p in client.get("/api/people").json()}["Ava"]
+    client.put("/api/marbles/jars", json={"person_ids": [ava]})
+    chore = client.post("/api/chores", json={"title": "Feed dog", "person_id": ava, "marbles": 2}).json()
+    assert chore["marbles"] == 2
+    r = client.post(f"/api/chores/{chore['id']}/done", json={"done": True}).json()
+    assert r["marbles"][0]["count"] == 2 and r["marbles"][0]["jar"]["blue"] == 2
+    r = client.post(f"/api/chores/{chore['id']}/done", json={"done": False}).json()
+    assert r["marbles"][0]["count"] == -2 and r["marbles"][0]["jar"]["blue"] == 0

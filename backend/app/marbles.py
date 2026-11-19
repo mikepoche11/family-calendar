@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS marble_jars (
 CREATE TABLE IF NOT EXISTS marble_log (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id  INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
-    action     TEXT NOT NULL,          -- blue | white | spend | cancel
+    action     TEXT NOT NULL,          -- blue | white | spend | cancel | chore | unchore
     blue       INTEGER NOT NULL DEFAULT 0,  -- change in blue marbles
     white      INTEGER NOT NULL DEFAULT 0,  -- change in white marbles
     note       TEXT NOT NULL DEFAULT '',
@@ -123,6 +123,37 @@ class Marbles:
             pid, color, lambda s: s + c * count,
             blue=count if c == "b" else 0, white=count if c == "w" else 0,
         )
+
+    def award(self, pid: int, count: int, note: str) -> dict:
+        """Blue marbles earned by finishing a chore (logged so they can be taken back)."""
+        return self._change(pid, "chore", lambda s: s + "b" * count, blue=count, note=note)
+
+    def take_back(self, pid: int, count: int, note: str) -> int:
+        """Take back blue marbles from a chore that was unchecked. Returns how many were taken.
+
+        If the award is still the jar's last change it is simply undone. If it was already
+        undone (the "Undo last" button), nothing more is taken. Otherwise the top-most
+        blues are removed (never more than the jar has, in case some were already spent).
+        """
+        with self.db.connect() as conn:
+            if conn.execute("SELECT 1 FROM marble_jars WHERE person_id = ?", (pid,)).fetchone() is None:
+                return 0
+            last = conn.execute(
+                "SELECT id, action, blue, note FROM marble_log WHERE person_id = ? ORDER BY id DESC LIMIT 1", (pid,)
+            ).fetchone()
+            awarded = conn.execute(
+                "SELECT 1 FROM marble_log WHERE person_id = ? AND action = 'chore' AND note = ?", (pid, note)
+            ).fetchone()
+        if awarded is None:
+            return 0  # the award was already undone with "Undo last"
+        if last and last["action"] == "chore" and last["blue"] == count and last["note"] == note:
+            self.undo(pid)
+            return count
+        jar = self.jar(pid)
+        n = min(count, jar["blue"])
+        if n:
+            self._change(pid, "unchore", lambda s: remove_top(s, "b", n), blue=-n, note=note)
+        return n
 
     def spend(self, pid: int, reward_id: int) -> dict:
         reward = self.reward(reward_id)
