@@ -10,6 +10,8 @@ colours events by family member, and shows weather.
 
 ![Marble jars](docs/marble-jars.png)
 
+![Phone view](docs/phone-view.png)
+
 ## What works now (phase 1)
 
 - Two-way sync with one Google calendar through a service account (pull every 5 minutes, writes go straight to Google)
@@ -23,10 +25,11 @@ colours events by family member, and shows weather.
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
 - Live refresh: changes show on every open screen within a second
+- Phone layout with tabs along the bottom, installable on the home screen; open it on home Wi-Fi or from anywhere over Tailscale ([guide](docs/phone-setup.md))
 - Returns to this week after 2 minutes untouched
 - Demo mode with sample events when no Google credentials are configured
 
-Planned next: chores, marble jars, phone layout as an installable app, meal planning, and forwarding school emails to create events. See the strategy doc in the
+Planned next: meal planning, and forwarding school emails to create events. See the strategy doc in the
 project for the full plan.
 
 ## Layout
@@ -43,6 +46,7 @@ project for the full plan.
 1. [Raspberry Pi kiosk](docs/pi-setup.md)
 2. [Connect the Google calendar](docs/google-setup.md)
 3. [Photo screensaver](docs/photos-setup.md) (optional)
+4. [Phones: home Wi-Fi and Tailscale](docs/phone-setup.md)
 
 ## Develop
 
