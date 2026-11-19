@@ -1,0 +1,96 @@
+/* Phone layout. The wall screen never matches this; it only kicks in on screens 700px wide or less.
+   Keep the breakpoint in step with useIsPhone.js. */
+@media (max-width: 700px) {
+  :root { --tabbar: 64px; --safe-bottom: env(safe-area-inset-bottom, 0px); }
+  html, body, #root { height: 100dvh; }
+
+  .app {
+    padding: max(10px, env(safe-area-inset-top)) 12px calc(var(--tabbar) + var(--safe-bottom) + 12px);
+    gap: 10px;
+  }
+
+  /* compact header: clock on the left, current weather on the right */
+  .header { flex-wrap: nowrap; gap: 8px; }
+  .clock { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .clock .time { font-size: 30px; letter-spacing: -0.5px; }
+  .clock .date { font-size: 15px; margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .weather { gap: 0; flex: none; }
+  .weather .now { gap: 4px; }
+  .weather .now .icon, .weather .now .temp { font-size: 24px; }
+  .weather .now .label { display: none; }
+
+  /* section buttons become a tab bar along the bottom edge, like a phone app */
+  .sections {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+    order: 0; width: auto; gap: 0;
+    padding: 4px 6px var(--safe-bottom);
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  .sections button {
+    flex: 1 1 0; min-width: 0; min-height: var(--tabbar);
+    padding: 4px 2px; border: none; border-radius: 12px; background: none;
+    font-size: 12px; font-weight: 600; line-height: 1.25; color: var(--muted);
+    word-spacing: 100vw; /* puts the emoji on its own line above the label */
+    white-space: normal; overflow: hidden;
+  }
+  .sections button::first-line { font-size: 22px; }
+  .sections button.on { background: #eff6ff; color: var(--accent); }
+
+  /* calendar controls */
+  .calendar-section { gap: 8px; }
+  .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .nav { gap: 6px; }
+  .nav button[aria-label] { font-size: 26px; padding: 0 12px; }
+  .range { font-size: 17px; margin-left: 4px; flex: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .views { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .views button { border: none; border-radius: 0; min-height: 40px; font-size: 15px; font-weight: 600; }
+
+  /* people filter: one row you can swipe sideways */
+  .people {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin: 0 -12px; padding: 0 12px 2px; gap: 6px;
+  }
+  .people::-webkit-scrollbar { display: none; }
+  .people .chip { flex: none; min-height: 40px; font-size: 15px; padding: 0 12px 0 4px; gap: 6px; }
+  .people .chip .avatar { width: 30px; height: 30px; }
+  .people .sync-error, .people .demo { flex: none; font-size: 14px; margin-left: 4px; white-space: nowrap; }
+  .people .settings-btn { flex: none; margin-left: 4px; min-height: 40px; font-size: 15px; }
+
+  .calendar { padding: 4px; border-radius: 12px; }
+  .fc { font-size: 15px; }
+  .fc .fc-col-header-cell-cushion { font-size: 15px; padding: 4px; }
+  .fc .fc-timegrid-slot { height: 2.2em; }
+  .fc .fc-daygrid-event { font-size: 12px; }
+  .fc .fc-daygrid-day-number { font-size: 13px; padding: 2px 4px; }
+  .fc .fc-list-event-title, .fc .fc-list-day-cushion { font-size: 16px; }
+  .fc .fc-list-event td { padding: 10px 8px; }
+
+  .fab {
+    right: 16px; bottom: calc(var(--tabbar) + var(--safe-bottom) + 18px);
+    width: 64px; height: 64px; font-size: 36px;
+  }
+
+  /* dialogs slide up from the bottom and fill the width */
+  .backdrop { place-items: end stretch; }
+  .modal, .modal.settings, .modal.chore-editor {
+    width: 100%; max-height: 92dvh; overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(20px + var(--safe-bottom));
+    gap: 12px;
+  }
+  .modal h2 { font-size: 22px; }
+  .modal input { font-size: 18px; }
+  .modal .title-input { font-size: 22px; }
+  .modal .actions { flex-wrap: wrap; }
+  .modal .actions button { flex: 1 1 auto; }
+  .modal .actions .spacer { display: none; }
+
+  /* bigger tap targets on the lists people use most from a phone */
+  .grocery-add { position: sticky; top: 0; }
+  .grocery-item .check { min-height: 56px; }
+  .chore-columns, .jars { grid-template-columns: 1fr; gap: 12px; }
+  .chore-tile { min-height: 60px; }
+  .chores-head .chores-title { font-size: 20px; }
+}

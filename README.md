@@ -6,6 +6,8 @@ colours events by family member, and shows weather.
 
 ![Week view](docs/week-view.png)
 
+![Phone view](docs/phone-view.png)
+
 ![Chores](docs/chores.png)
 
 ![Marble jars](docs/marble-jars.png)
@@ -26,6 +28,7 @@ colours events by family member, and shows weather.
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
 - Live refresh: changes show on every open screen within a second
+- Phone layout with tabs along the bottom, installable on the home screen; open it on home Wi-Fi or from anywhere over Tailscale ([guide](docs/phone-setup.md))
 - Returns to this week after 2 minutes untouched
 - Demo mode with sample events when no Google credentials are configured
 

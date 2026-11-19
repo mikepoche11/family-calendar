@@ -9,6 +9,7 @@ import Header from './Header.jsx'
 import EventModal, { draftFrom } from './EventModal.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
+import useIsPhone from './useIsPhone.js'
 import Screensaver from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
@@ -22,11 +23,15 @@ const VIEWS = [
   { id: 'listTwoWeeks', label: 'Schedule' },
 ]
 const DEFAULT_VIEW = 'timeGridWeek'
+// A week of columns is unreadable on a phone, so phones start on the two-week schedule and skip Week
+const PHONE_VIEW = 'listTwoWeeks'
+const PHONE_VIEWS = new Set(['timeGridDay', 'dayGridMonth', 'listTwoWeeks'])
 const UNASSIGNED_COLOR = '#94a3b8'
 const IDLE_RESET_MS = 2 * 60 * 1000 // go back to today after 2 minutes untouched
 
 export default function App() {
   const calRef = useRef(null)
+  const isPhone = useIsPhone()
   const [people, setPeople] = useState([])
   const [hidden, setHidden] = useState(() => new Set())
   const [weather, setWeather] = useState(null)
@@ -88,7 +93,7 @@ export default function App() {
 
   // Photo screensaver after SCREENSAVER_MINUTES untouched (only when there are photos and no dialog is open)
   useEffect(() => {
-    if (!photos.length || draft || showSettings || screensaver) return
+    if (isPhone || !photos.length || draft || showSettings || screensaver) return
     let timer
     const reset = () => {
       clearTimeout(timer)
@@ -100,15 +105,16 @@ export default function App() {
       clearTimeout(timer)
       window.removeEventListener('pointerdown', reset)
     }
-  }, [photos.length, draft, showSettings, screensaver, config.screensaver_minutes])
+  }, [isPhone, photos.length, draft, showSettings, screensaver, config.screensaver_minutes])
 
   // People colours and the filter are applied when events are fetched
   useEffect(() => {
     refetch()
   }, [people, hidden, refetch])
 
-  // Return to the default view on today when nobody has touched the screen for a while
+  // Return to the default view on today when nobody has touched the screen for a while (wall screen only)
   useEffect(() => {
+    if (isPhone) return
     let timer
     const reset = () => {
       clearTimeout(timer)
@@ -129,7 +135,13 @@ export default function App() {
       clearTimeout(timer)
       window.removeEventListener('pointerdown', reset)
     }
-  }, [])
+  }, [isPhone])
+
+  // Turning a tablet or resizing a window across the phone width: leave Week, which doesn't fit
+  useEffect(() => {
+    const fc = calRef.current?.getApi()
+    if (isPhone && fc && !PHONE_VIEWS.has(fc.view.type)) fc.changeView(PHONE_VIEW)
+  }, [isPhone])
 
   const fetchEvents = useCallback(
     (info, success, failure) => {
@@ -222,7 +234,7 @@ export default function App() {
           <span className="range">{title}</span>
         </div>
         <div className="views">
-          {VIEWS.map((v) => (
+          {VIEWS.filter((v) => !isPhone || PHONE_VIEWS.has(v.id)).map((v) => (
             <button
               key={v.id}
               className={view === v.id ? 'on' : ''}
@@ -264,14 +276,14 @@ export default function App() {
         <FullCalendar
           ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-          initialView={DEFAULT_VIEW}
+          initialView={isPhone ? PHONE_VIEW : DEFAULT_VIEW}
           views={{ listTwoWeeks: { type: 'list', duration: { days: 14 } } }}
           headerToolbar={false}
           height="100%"
           nowIndicator
           selectable
           selectLongPressDelay={250}
-          dayMaxEvents={4}
+          dayMaxEvents={isPhone ? 2 : 4}
           scrollTime="07:00:00"
           slotMinTime="06:00:00"
           slotMaxTime="23:00:00"
