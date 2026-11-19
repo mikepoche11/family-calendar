@@ -218,6 +218,14 @@ a.button.primary { background: var(--accent); color: #fff; }
 .chore-tile .icon { font-size: 32px; flex: none; }
 .chore-tile .title { flex: 1; font-size: 22px; line-height: 1.2; }
 .chore-tile .tick { width: 40px; height: 40px; flex: none; border: 3px solid var(--line); border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 700; color: #fff; }
+.chore-tile .chore-marbles { flex: none; display: flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chore-tile.done .chore-marbles { opacity: 0.55; }
+.marbles-earned { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 20px; }
+.marbles-earned h2 { margin: 0; text-align: center; }
+.marbles-earned .note { margin: 0; color: var(--muted); font-size: 18px; }
+.marble-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 20px; font-weight: 600; padding: 12px 22px; border-radius: 999px; z-index: 20; animation: bubble 0.3s ease both; }
+.stepper .none { color: var(--muted); }
+.stepper button:disabled { opacity: 0.35; }
 .chore-tile.done { background: color-mix(in srgb, var(--chip) 12%, white); border-color: var(--chip); }
 .chore-tile.done .title { color: var(--muted); text-decoration: line-through; }
 .chore-tile.done .tick { background: var(--chip); border-color: var(--chip); }
@@ -225,7 +233,8 @@ a.button.primary { background: var(--accent); color: #fff; }
 .starter .hint { margin: 0; font-size: 18px; }
 .starter .field-label { font-size: 18px; color: var(--muted); }
 .starter .actions { display: flex; gap: 12px; }
-.modal.chore-editor { width: min(1000px, 96vw); max-height: 92vh; overflow-y: auto; }
+.modal.chore-editor .hint { margin: 0 0 6px; }
+.modal.chore-editor { width: min(1200px, 96vw); max-height: 92vh; overflow-y: auto; }
 .chore-rows { display: flex; flex-direction: column; gap: 8px; }
 .chore-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
 .modal .chore-row .icon-input { width: 64px; text-align: center; padding: 0 4px; font-size: 26px; }

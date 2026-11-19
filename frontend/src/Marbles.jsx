@@ -255,7 +255,7 @@ export default function Marbles({ people, version }) {
   )
 }
 
-function Jar({ jar, person, leaving }) {
+export function Jar({ jar, person, leaving }) {
   const prev = useRef(jar.contents)
   const contents = jar.contents
   // Marbles appended since the last render drop in from the top

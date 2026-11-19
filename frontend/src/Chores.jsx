@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
 import Avatar from './avatars.jsx'
+import { Jar } from './Marbles.jsx'
 
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] // Monday = 0, matches the backend
 const ANYONE = 'anyone'
@@ -12,6 +13,7 @@ export default function Chores({ people, version }) {
   const [whoFor, setWhoFor] = useState(null) // "anyone" chore waiting for who did it
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState(null)
+  const [earned, setEarned] = useState(null) // marbles just added to (or taken from) a jar
 
   const load = () =>
     Promise.all([api.choresToday(), api.chores()])
@@ -45,7 +47,10 @@ export default function Chores({ people, version }) {
       ),
     }))
     try {
-      await api.setChoreDone(chore.id, { done, person_id: personId })
+      const r = await api.setChoreDone(chore.id, { done, person_id: personId })
+      // Show the newest jar change: marbles earned, or taken back after unchecking
+      const change = (r.marbles ?? []).filter((m) => m.jar).pop()
+      if (change) setEarned({ ...change, key: Date.now() })
     } catch (e) {
       setError(e.message)
     }
@@ -108,6 +113,11 @@ export default function Chores({ people, version }) {
                   <button key={c.id} className={`chore-tile ${c.done ? 'done' : ''}`} onClick={() => tap(c)}>
                     <span className="icon">{c.icon || '⭐'}</span>
                     <span className="title">{c.title}</span>
+                    {c.marbles > 0 && (
+                      <span className="chore-marbles" aria-label={`Worth ${c.marbles} blue marbles`}>
+                        +{c.marbles} <i className="dot blue" />
+                      </span>
+                    )}
                     {c.done && col.key === ANYONE && peopleById[c.done_by] ? (
                       <Avatar person={peopleById[c.done_by]} size={36} />
                     ) : (
@@ -125,6 +135,11 @@ export default function Chores({ people, version }) {
         <div className="backdrop" onPointerDown={(e) => e.target === e.currentTarget && setWhoFor(null)}>
           <div className="modal who-did-it">
             <h2>Who did "{whoFor.title}"?</h2>
+            {whoFor.marbles > 0 && (
+              <p className="note">
+                Worth {whoFor.marbles} blue marble{whoFor.marbles === 1 ? '' : 's'} for whoever did it.
+              </p>
+            )}
             <div className="chips">
               {people.map((p) => (
                 <button
@@ -149,8 +164,56 @@ export default function Chores({ people, version }) {
         </div>
       )}
 
+      {earned && (
+        <MarblesEarned
+          key={earned.key}
+          change={earned}
+          person={peopleById[earned.person_id]}
+          onClose={() => setEarned(null)}
+        />
+      )}
+
       {editing && <ChoreEditor chores={all} people={people} onChanged={load} onClose={() => setEditing(false)} />}
     </main>
+  )
+}
+
+/** After a chore worth marbles is checked: show the kid's jar with the new blues dropping in. */
+function MarblesEarned({ change, person, onClose }) {
+  const { count, jar } = change
+  const gained = count > 0
+  // Start with the jar as it was, then add the new marbles so they drop in from the top
+  const [shown, setShown] = useState(() => (gained ? { ...jar, contents: jar.contents.slice(0, -count) } : jar))
+  useEffect(() => {
+    const t1 = gained ? setTimeout(() => setShown(jar), 350) : null
+    const t2 = setTimeout(onClose, gained ? 3200 : 2600)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [])
+  if (!person) return null
+  const n = Math.abs(count)
+  const what = `${n} blue marble${n === 1 ? '' : 's'}`
+
+  if (!gained)
+    return (
+      <div className="marble-toast" role="status" onClick={onClose}>
+        Took back {what} from {person.name}'s jar
+      </div>
+    )
+  return (
+    <div className="backdrop" onPointerDown={onClose}>
+      <div className="modal marbles-earned" style={{ '--chip': person.color }} role="status">
+        <h2>
+          +{what} for {person.name}! 🎉
+        </h2>
+        <Jar jar={shown} person={person} leaving={null} />
+        <p className="note">
+          {jar.blue} blue in the jar now. Tap anywhere to close.
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -229,6 +292,10 @@ function ChoreEditor({ chores, people, onChanged, onClose }) {
           <h2>Edit chores</h2>
           <button className="primary" onClick={onClose}>Done</button>
         </div>
+        <p className="hint">
+          The <i className="dot blue" /> number is how many blue marbles a chore earns. Checking it off drops them into
+          that kid's jar; unchecking takes them back. Leave it at 0 for no marbles.
+        </p>
         <div className="chore-rows">
           {chores.map((c) => (
             <div className="chore-row" key={c.id}>
@@ -277,6 +344,25 @@ function ChoreEditor({ chores, people, onChanged, onClose }) {
                     {l}
                   </button>
                 ))}
+              </div>
+              <div className="stepper" aria-label="Blue marbles earned">
+                <button
+                  aria-label="Fewer marbles"
+                  disabled={!c.marbles}
+                  onClick={() => run(() => api.updateChore(c.id, { marbles: c.marbles - 1 }))}
+                >
+                  −
+                </button>
+                <span className={c.marbles ? '' : 'none'}>
+                  {c.marbles} <i className="dot blue" />
+                </span>
+                <button
+                  aria-label="More marbles"
+                  disabled={c.marbles >= 20}
+                  onClick={() => run(() => api.updateChore(c.id, { marbles: c.marbles + 1 }))}
+                >
+                  +
+                </button>
               </div>
               <button className="remove" aria-label={`Delete ${c.title}`} onClick={() => run(() => api.deleteChore(c.id))}>
                 ×

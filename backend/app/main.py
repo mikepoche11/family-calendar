@@ -61,8 +61,8 @@ class State:
         self.db.seed_people(settings.people_seed)
         self.weather = Weather(settings.latitude, settings.longitude, settings.timezone, settings.temperature_unit)
         self.broadcaster = Broadcaster()
-        self.chores = Chores(self.db)
         self.marbles = Marbles(self.db)
+        self.chores = Chores(self.db, self.marbles)
         self.meals = Meals(self.db)
         self.ideas = MealIdeas()
         self.photos = Photos(
@@ -168,6 +168,7 @@ class ChoreIn(BaseModel):
     icon: str = Field(default="", max_length=16)
     person_id: int | None = None  # None = anyone
     days: str = Field(default="0123456", pattern=DAYS)  # Monday = 0
+    marbles: int = Field(default=0, ge=0, le=20)  # blue marbles earned when done
 
 
 class ChorePatch(BaseModel):
@@ -176,6 +177,7 @@ class ChorePatch(BaseModel):
     person_id: int | None = None
     anyone: bool = False  # set to make the chore "anyone" (person_id null)
     days: str | None = Field(default=None, pattern=DAYS)
+    marbles: int | None = Field(default=None, ge=0, le=20)
 
 
 class ChoreDone(BaseModel):
@@ -488,7 +490,7 @@ def chores_today(request: Request):
 def chores_create(body: ChoreIn, request: Request):
     s = st(request)
     _check_person(s, body.person_id)
-    chore = s.chores.create(body.title.strip(), body.icon.strip(), body.person_id, body.days)
+    chore = s.chores.create(body.title.strip(), body.icon.strip(), body.person_id, body.days, body.marbles)
     s.broadcaster.publish("chores")
     return chore
 
@@ -522,10 +524,16 @@ def chores_delete(cid: int, request: Request):
 def chores_done(cid: int, body: ChoreDone, request: Request):
     s = st(request)
     _check_person(s, body.person_id)
-    if not s.chores.set_done(cid, _today(s), body.done, body.person_id):
+    result = s.chores.set_done(cid, _today(s), body.done, body.person_id)
+    if result is None:
         raise HTTPException(404, "No such chore")
     s.broadcaster.publish("chores")
-    return {"ok": True}
+    if result["marbles"]:
+        s.broadcaster.publish("marbles")
+    jars = {j["person_id"]: j for j in s.marbles.jars()}
+    for change in result["marbles"]:
+        change["jar"] = jars.get(change["person_id"])
+    return {"ok": True, **result}
 
 
 @app.post("/api/chores/starter", status_code=201)
