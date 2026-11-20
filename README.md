@@ -59,7 +59,7 @@ cd backend
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
 pytest -q
-DATA_DIR=./data PEOPLE="Mike:#2563eb,Mom:#16a34a,Kid:#db2777" uvicorn app.main:app --reload
+DATA_DIR=./data PEOPLE="Mike:#93c5fd,Mom:#86efac,Kid:#f9a8d4" uvicorn app.main:app --reload
 
 # frontend, in another terminal: http://localhost:5173
 cd frontend

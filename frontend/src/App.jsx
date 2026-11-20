@@ -27,7 +27,7 @@ const DEFAULT_VIEW = 'timeGridWeek'
 // A week of columns is unreadable on a phone, so phones start on the two-week schedule and skip Week
 const PHONE_VIEW = 'listTwoWeeks'
 const PHONE_VIEWS = new Set(['timeGridDay', 'dayGridMonth', 'listTwoWeeks'])
-const UNASSIGNED_COLOR = '#94a3b8'
+const UNASSIGNED_COLOR = '#cbd5e1'
 const IDLE_RESET_MS = 2 * 60 * 1000 // go back to today after 2 minutes untouched
 
 export default function App() {
@@ -162,6 +162,7 @@ export default function App() {
                   allDay: e.all_day,
                   backgroundColor: color,
                   borderColor: color,
+                  textColor: '#1e293b',
                   extendedProps: { row: e },
                 }
               }),

@@ -94,7 +94,7 @@ export default function Chores({ people, version }) {
         <div className="chore-columns">
           {columns.map((col) => {
             const done = col.chores.filter((c) => c.done).length
-            const color = col.person?.color ?? '#64748b'
+            const color = col.person?.color ?? '#cbd5e1'
             const finished = done === col.chores.length
             return (
               <section className="chore-col" key={col.key} style={{ '--chip': color }}>

@@ -45,6 +45,29 @@ CREATE TABLE IF NOT EXISTS meta (
 """
 
 
+# Old bright family colours -> their pastel match (pastel theme, 2026-11). Anything else gets mixed with white.
+PASTEL_FOR = {
+    "#ef4444": "#fca5a5", "#dc2626": "#fca5a5", "#f97316": "#fdba74", "#ea580c": "#fdba74",
+    "#f59e0b": "#fde68a", "#eab308": "#fde68a", "#84cc16": "#d9f99d", "#16a34a": "#86efac",
+    "#22c55e": "#86efac", "#14b8a6": "#99f6e4", "#0ea5e9": "#7dd3fc", "#2563eb": "#93c5fd",
+    "#3b82f6": "#93c5fd", "#7c3aed": "#c4b5fd", "#9333ea": "#c4b5fd", "#c026d3": "#f0abfc",
+    "#db2777": "#f9a8d4", "#ec4899": "#f9a8d4", "#64748b": "#cbd5e1", "#94a3b8": "#cbd5e1",
+}
+
+
+def pastel(color: str) -> str:
+    c = color.lower()
+    if c in PASTEL_FOR:
+        return PASTEL_FOR[c]
+    try:
+        r, g, b = (int(c[i : i + 2], 16) for i in (1, 3, 5))
+    except ValueError:
+        return color
+    if (r + g + b) / 3 >= 170:  # already soft
+        return c
+    return "#" + "".join(f"{round(v + (255 - v) * 0.55):02x}" for v in (r, g, b))
+
+
 class Database:
     def __init__(self, path: Path):
         self.path = path
@@ -91,8 +114,19 @@ class Database:
                 name, _, color = item.partition(":")
                 conn.execute(
                     "INSERT INTO people(name, color, position) VALUES(?, ?, ?)",
-                    (name.strip(), (color.strip() or "#64748b"), pos),
+                    (name.strip(), (color.strip() or "#cbd5e1"), pos),
                 )
+
+    def pastelize_people(self) -> None:
+        """One-time switch of saved family colours to the pastel theme."""
+        if self.get_meta("pastel_colors"):
+            return
+        with self.connect() as conn:
+            for row in conn.execute("SELECT id, color FROM people").fetchall():
+                new = pastel(row["color"])
+                if new != row["color"]:
+                    conn.execute("UPDATE people SET color = ? WHERE id = ?", (new, row["id"]))
+        self.set_meta("pastel_colors", "1")
 
     def list_people(self) -> list[dict]:
         with self.connect() as conn:
