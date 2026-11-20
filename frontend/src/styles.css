@@ -379,3 +379,22 @@ a.button.primary { background: var(--accent); color: #fff; }
   .meal-name { font-size: 18px; }
   .meal-ingredients { display: none; }
 }
+
+/* pastel icons (icons.jsx) */
+.ic { display: inline-block; vertical-align: -0.24em; flex: none; }
+button .ic { width: 1.4em; height: 1.4em; margin-right: 0.3em; vertical-align: -0.36em; }
+button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-right: 0; }
+.icon .ic, .meal-icon .ic, .anyone-icon .ic { width: 1.3em; height: 1.3em; vertical-align: middle; }
+.weather .icon .ic { width: 1.25em; height: 1.25em; }
+.weather .day .icon .ic { width: 1.45em; height: 1.45em; }
+.sections .ic { width: 1.6em; height: 1.6em; }
+.jar-bubble .ic { width: 1.3em; height: 1.3em; }
+.modal .chore-row .icon-pick { width: 64px; padding: 0; font-size: 34px; }
+.modal .icon-label .icon-pick { width: 100%; padding: 0; font-size: 40px; }
+.picker-backdrop { z-index: 30; }
+.icon-picker { width: min(640px, 94vw); max-height: 90vh; overflow: auto; }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+.icon-grid button { height: 72px; padding: 0; font-size: 42px; display: grid; place-items: center; }
+.icon-grid button.on { background: #dbeafe; border-color: var(--accent); }
+.icon-custom { display: flex; gap: 10px; }
+.icon-custom input { flex: 1; }

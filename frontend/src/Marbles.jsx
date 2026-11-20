@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './api.js'
 import Avatar from './avatars.jsx'
+import { Icon, ItemIcon } from './icons.jsx'
+import IconPicker from './IconPicker.jsx'
 
 // Inside of the glass, in px. Marbles are laid out from the bottom up.
 const JAR_W = 216
@@ -156,7 +158,7 @@ export default function Marbles({ people, version }) {
       jar,
       [],
       topIndices(jar.contents, 'b', reward.cost),
-      `${reward.icon} ${reward.title}!`,
+      <><ItemIcon value={reward.icon} fallback="gift" /> {reward.title}!</>,
       () => api.spendMarbles(jar.person_id, reward.id),
     )
   }
@@ -170,7 +172,7 @@ export default function Marbles({ people, version }) {
     <main className="marbles">
       <div className="chores-head">
         <span className="chores-title">Marble jars</span>
-        <button onClick={() => setSettings(true)}>⚙ Jars &amp; rewards</button>
+        <button onClick={() => setSettings(true)}><Icon name="gear" /> Jars &amp; rewards</button>
       </div>
       {error && <p className="error">{error}</p>}
 
@@ -210,14 +212,14 @@ export default function Marbles({ people, version }) {
                 </div>
                 <div className="jar-actions">
                   <button disabled={!!anim || jar.blue < cheapest} onClick={() => setSpending(jar)}>
-                    🛍️ Spend
+                    <Icon name="bag" /> Spend
                   </button>
                   <button
                     className="cancel-out"
                     disabled={!!anim || !jar.blue || !jar.white}
                     onClick={() => cancelOut(jar)}
                   >
-                    ⚖️ Cancel out
+                    <Icon name="scale" /> Cancel out
                   </button>
                 </div>
                 <button
@@ -225,7 +227,7 @@ export default function Marbles({ people, version }) {
                   disabled={!!anim || !jar.last_action}
                   onClick={() => run(() => api.undoMarbles(jar.person_id))}
                 >
-                  ↶ Undo last
+                  <Icon name="undo" /> Undo last
                 </button>
               </section>
             )
@@ -320,7 +322,7 @@ function SpendPicker({ jar, person, rewards, onPick, onClose }) {
             const short = r.cost - jar.blue
             return (
               <button key={r.id} className="reward" disabled={short > 0} onClick={() => onPick(r)}>
-                <span className="icon">{r.icon || '🎁'}</span>
+                <span className="icon"><ItemIcon value={r.icon} fallback="gift" /></span>
                 <span className="title">{r.title}</span>
                 <span className="cost">
                   {r.cost} <i className="dot blue" />
@@ -450,13 +452,7 @@ function JarSettings({ people, jars, rewards, onChanged, onClose }) {
         <div className="chore-rows">
           {rewards.map((r) => (
             <div className="chore-row" key={r.id}>
-              <input
-                className="icon-input"
-                defaultValue={r.icon}
-                maxLength={4}
-                aria-label="Icon"
-                onBlur={(e) => e.target.value !== r.icon && run(() => api.updateReward(r.id, { icon: e.target.value }))}
-              />
+              <IconPicker value={r.icon} fallback="gift" onChange={(icon) => run(() => api.updateReward(r.id, { icon }))} />
               <input
                 className="title-input-sm"
                 defaultValue={r.title}

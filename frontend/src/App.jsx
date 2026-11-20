@@ -15,6 +15,7 @@ import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
 import Marbles from './Marbles.jsx'
 import Meals from './Meals.jsx'
+import { Icon } from './icons.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -203,19 +204,19 @@ export default function App() {
       <Header weather={weather}>
         <nav className="sections">
           <button className={section === 'calendar' ? 'on' : ''} onClick={() => setSection('calendar')}>
-            📅 Calendar
+            <Icon name="calendar" /> Calendar
           </button>
           <button className={section === 'grocery' ? 'on' : ''} onClick={() => setSection('grocery')}>
-            🛒 Grocery
+            <Icon name="cart" /> Grocery
           </button>
           <button className={section === 'meals' ? 'on' : ''} onClick={() => setSection('meals')}>
-            🍽️ Meals
+            <Icon name="plate" /> Meals
           </button>
           <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
-            ✅ Chores
+            <Icon name="chores" /> Chores
           </button>
           <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
-            🫙 Marbles
+            <Icon name="jar" /> Marbles
           </button>
         </nav>
       </Header>
@@ -268,7 +269,7 @@ export default function App() {
         {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
         {health?.mode === 'demo' && <span className="demo">Demo data</span>}
         <button className="settings-btn" onClick={() => setShowSettings('family')} aria-label="Settings">
-          ⚙ Settings
+          <Icon name="gear" /> Settings
         </button>
       </div>
 

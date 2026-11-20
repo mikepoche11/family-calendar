@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
 import Avatar from './avatars.jsx'
 import { Jar } from './Marbles.jsx'
+import { Icon, ItemIcon } from './icons.jsx'
+import IconPicker from './IconPicker.jsx'
 
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] // Monday = 0, matches the backend
 const ANYONE = 'anyone'
@@ -80,7 +82,7 @@ export default function Chores({ people, version }) {
     <main className="chores">
       <div className="chores-head">
         <span className="chores-title">Today's chores</span>
-        <button onClick={() => setEditing(true)}>✎ Edit chores</button>
+        <button onClick={() => setEditing(true)}><Icon name="pencil" /> Edit chores</button>
       </div>
       {error && <p className="error">{error}</p>}
 
@@ -97,7 +99,7 @@ export default function Chores({ people, version }) {
             return (
               <section className="chore-col" key={col.key} style={{ '--chip': color }}>
                 <header>
-                  {col.person ? <Avatar person={col.person} size={56} /> : <span className="anyone-icon">🤝</span>}
+                  {col.person ? <Avatar person={col.person} size={56} /> : <span className="anyone-icon"><Icon name="anyone" /></span>}
                   <div>
                     <div className="name">{col.person?.name ?? 'Anyone'}</div>
                     <div className="progress">
@@ -108,10 +110,10 @@ export default function Chores({ people, version }) {
                     </div>
                   </div>
                 </header>
-                {finished && col.person && <div className="all-done">All done! 🎉</div>}
+                {finished && col.person && <div className="all-done">All done! <Icon name="party" /></div>}
                 {col.chores.map((c) => (
                   <button key={c.id} className={`chore-tile ${c.done ? 'done' : ''}`} onClick={() => tap(c)}>
-                    <span className="icon">{c.icon || '⭐'}</span>
+                    <span className="icon"><ItemIcon value={c.icon} fallback="star" /></span>
                     <span className="title">{c.title}</span>
                     {c.marbles > 0 && (
                       <span className="chore-marbles" aria-label={`Worth ${c.marbles} blue marbles`}>
@@ -206,7 +208,7 @@ function MarblesEarned({ change, person, onClose }) {
     <div className="backdrop" onPointerDown={onClose}>
       <div className="modal marbles-earned" style={{ '--chip': person.color }} role="status">
         <h2>
-          +{what} for {person.name}! 🎉
+          +{what} for {person.name}! <Icon name="party" />
         </h2>
         <Jar jar={shown} person={person} leaving={null} />
         <p className="note">
@@ -299,13 +301,7 @@ function ChoreEditor({ chores, people, onChanged, onClose }) {
         <div className="chore-rows">
           {chores.map((c) => (
             <div className="chore-row" key={c.id}>
-              <input
-                className="icon-input"
-                defaultValue={c.icon}
-                maxLength={4}
-                aria-label="Icon"
-                onBlur={(e) => e.target.value !== c.icon && run(() => api.updateChore(c.id, { icon: e.target.value }))}
-              />
+              <IconPicker value={c.icon} fallback="star" onChange={(icon) => run(() => api.updateChore(c.id, { icon }))} />
               <input
                 className="title-input-sm"
                 defaultValue={c.title}
