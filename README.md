@@ -46,10 +46,11 @@ project for the full plan.
 
 ## Set up
 
-1. [Raspberry Pi kiosk](docs/pi-setup.md)
-2. [Connect the Google calendar](docs/google-setup.md)
-3. [Photo screensaver](docs/photos-setup.md) (optional)
-4. [Meal planning](docs/meal-planning.md) (how to use it)
+1. [Install on a Linux PC](docs/install-linux.md) (step by step, start here)
+2. [Raspberry Pi kiosk](docs/pi-setup.md)
+3. [Connect the Google calendar](docs/google-setup.md)
+4. [Photo screensaver](docs/photos-setup.md) (optional)
+5. [Meal planning](docs/meal-planning.md) (how to use it)
 
 ## Develop
 
