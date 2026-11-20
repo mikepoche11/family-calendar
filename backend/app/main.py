@@ -59,6 +59,7 @@ class State:
         self.settings = settings
         self.db = Database(settings.db_path)
         self.db.seed_people(settings.people_seed)
+        self.db.pastelize_people()
         self.weather = Weather(settings.latitude, settings.longitude, settings.timezone, settings.temperature_unit)
         self.broadcaster = Broadcaster()
         self.marbles = Marbles(self.db)

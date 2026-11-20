@@ -3,9 +3,10 @@ import { api } from './api.js'
 import Avatar, { AVATARS, AvatarArt } from './avatars.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 
+/** Pastel family colours (coral, peach, butter yellow, lime, mint, aqua, sky, blue, lilac, orchid, pink, grey). */
 export const COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#16a34a', '#14b8a6',
-  '#0ea5e9', '#2563eb', '#7c3aed', '#c026d3', '#db2777', '#64748b',
+  '#fca5a5', '#fdba74', '#fde68a', '#d9f99d', '#86efac', '#99f6e4',
+  '#7dd3fc', '#93c5fd', '#c4b5fd', '#f0abfc', '#f9a8d4', '#cbd5e1',
 ]
 
 /** Family settings: pick a person, then change their name, colour and avatar. Saves as you tap. */

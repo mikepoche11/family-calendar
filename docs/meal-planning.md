@@ -50,7 +50,7 @@ Tap **Add N items** and they appear on the 🛒 Grocery list right away, on the 
 
 **📖 Our meals** at the top shows every saved meal. Tap one to edit it:
 
-- **Icon**: any emoji, shown when the meal has no photo.
+- **Icon**: tap it to pick one of the pastel icons (or type any emoji), shown when the meal has no photo.
 - **Name**.
 - **Ingredients**: one per line, exactly as you'd like them to appear on the grocery list. An amount in brackets works well, like `Ground beef (1 lb)`.
 - **Recipe link**: optional. Paste a link from anywhere (Allrecipes, Pinterest, a YouTube video).

@@ -31,7 +31,7 @@ class Settings:
     temperature_unit: str = field(default_factory=lambda: _env("TEMPERATURE_UNIT", "fahrenheit"))
 
     # "Name:#hexcolor,Name2:#hexcolor" — seeds the people table on first start only
-    people_seed: str = field(default_factory=lambda: _env("PEOPLE", "Family:#64748b"))
+    people_seed: str = field(default_factory=lambda: _env("PEOPLE", "Family:#cbd5e1"))
 
     # Google Photos Picker (OAuth web client; see docs/photos-setup.md)
     google_oauth_client_id: str = field(default_factory=lambda: _env("GOOGLE_OAUTH_CLIENT_ID"))

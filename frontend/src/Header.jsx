@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
-
-const ICONS = {
-  sun: '☀️', 'cloud-sun': '⛅', cloud: '☁️', fog: '🌫️', drizzle: '🌦️', rain: '🌧️', snow: '❄️', storm: '⛈️',
-}
+import { Icon } from './icons.jsx'
 
 function useNow(intervalMs = 15000) {
   const [now, setNow] = useState(new Date())
@@ -27,7 +24,7 @@ export default function Header({ weather, children }) {
       {weather && (
         <div className="weather">
           <div className="now">
-            <span className="icon">{ICONS[weather.icon] ?? ''}</span>
+            <span className="icon"><Icon name={weather.icon} title={weather.label} /></span>
             <span className="temp">{weather.temperature}°</span>
             <span className="label">{weather.label}</span>
           </div>
@@ -37,7 +34,7 @@ export default function Header({ weather, children }) {
                 <div className="dow">
                   {new Date(d.date + 'T12:00').toLocaleDateString([], { weekday: 'short' })}
                 </div>
-                <div className="icon">{ICONS[d.icon] ?? ''}</div>
+                <div className="icon"><Icon name={d.icon} /></div>
                 <div className="hilo">
                   {d.high}° <span className="lo">{d.low}°</span>
                 </div>

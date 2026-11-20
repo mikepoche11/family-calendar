@@ -24,7 +24,7 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
     order: 0; width: auto; gap: 0;
     padding: 4px 6px var(--safe-bottom);
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(253, 248, 239, 0.96);
     border-top: 1px solid var(--line);
     backdrop-filter: blur(8px);
   }
@@ -32,11 +32,11 @@
     flex: 1 1 0; min-width: 0; min-height: var(--tabbar);
     padding: 4px 2px; border: none; border-radius: 12px; background: none;
     font-size: 12px; font-weight: 600; line-height: 1.25; color: var(--muted);
-    word-spacing: 100vw; /* puts the emoji on its own line above the label */
-    white-space: normal; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    white-space: nowrap; overflow: hidden;
   }
-  .sections button::first-line { font-size: 22px; }
-  .sections button.on { background: #eff6ff; color: var(--accent); }
+  .sections button .ic { width: 28px; height: 28px; margin: 0; }
+  .sections button.on { color: var(--ink); border: none; }
 
   /* calendar controls */
   .calendar-section { gap: 8px; }

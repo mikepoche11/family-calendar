@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
+import { Icon, ItemIcon } from './icons.jsx'
+import IconPicker from './IconPicker.jsx'
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 // Things most kitchens already have: left unchecked when sending ingredients to the grocery list
@@ -91,12 +93,12 @@ export default function Meals({ version }) {
               })
             }
           >
-            🎲 Fill empty nights
+            <Icon name="dice" /> Fill empty nights
           </button>
           <button disabled={!planned.some((d) => d.meal.ingredients.length)} onClick={() => shopFor(planned)}>
-            🛒 Week's groceries
+            <Icon name="cart" /> Week's groceries
           </button>
-          <button onClick={() => setShowBox(true)}>📖 Our meals</button>
+          <button onClick={() => setShowBox(true)}><Icon name="book" /> Our meals</button>
         </div>
       </div>
       {error && <p className="error">{error}</p>}
@@ -119,7 +121,7 @@ export default function Meals({ version }) {
                     {d.meal.image ? (
                       <Thumb src={d.meal.image} />
                     ) : (
-                      <span className="meal-icon">{d.meal.icon || '🍽️'}</span>
+                      <span className="meal-icon"><ItemIcon value={d.meal.icon} fallback="plate" /></span>
                     )}
                     <span className="meal-name">{d.meal.name}</span>
                     {d.meal.ingredients.length > 0 && (
@@ -137,7 +139,7 @@ export default function Meals({ version }) {
               </button>
               {d.meal && d.meal.ingredients.length > 0 && (
                 <button className="to-list" onClick={() => shopFor([d])}>
-                  🛒 Add to list
+                  <Icon name="cart" /> Add to list
                 </button>
               )}
             </section>
@@ -299,8 +301,8 @@ function DayPicker({ day, current, meals, onPick, onSaveIdea, onNew, onEdit, onC
           <button onClick={onClose}>Close</button>
         </div>
         <div className="tabs">
-          <button className={tab === 'ours' ? 'on' : ''} onClick={() => setTab('ours')}>📖 Our meals</button>
-          <button className={tab === 'ideas' ? 'on' : ''} onClick={() => setTab('ideas')}>💡 Get ideas</button>
+          <button className={tab === 'ours' ? 'on' : ''} onClick={() => setTab('ours')}><Icon name="book" /> Our meals</button>
+          <button className={tab === 'ideas' ? 'on' : ''} onClick={() => setTab('ideas')}><Icon name="bulb" /> Get ideas</button>
         </div>
 
         {tab === 'ours' ? (
@@ -309,7 +311,7 @@ function DayPicker({ day, current, meals, onPick, onSaveIdea, onNew, onEdit, onC
             <div className="meal-tiles">
               {shown.map((m) => (
                 <button key={m.id} className={`meal-tile ${current?.id === m.id ? 'on' : ''}`} onClick={() => onPick(m)}>
-                  {m.image ? <Thumb src={m.image} /> : <span className="meal-icon">{m.icon || '🍽️'}</span>}
+                  {m.image ? <Thumb src={m.image} /> : <span className="meal-icon"><ItemIcon value={m.icon} fallback="plate" /></span>}
                   <span className="meal-name">{m.name}</span>
                 </button>
               ))}
@@ -330,7 +332,7 @@ function DayPicker({ day, current, meals, onPick, onSaveIdea, onNew, onEdit, onC
             >
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a dish or ingredient, like chicken…" />
               <button type="submit" className="primary">Search</button>
-              <button type="button" onClick={() => { setQuery(''); fetchIdeas() }}>🎲 Surprise me</button>
+              <button type="button" onClick={() => { setQuery(''); fetchIdeas() }}><Icon name="dice" /> Surprise me</button>
             </form>
             {loading && <p className="note">Finding ideas…</p>}
             {ideaError && <p className="error">{ideaError}</p>}
@@ -357,7 +359,7 @@ function DayPicker({ day, current, meals, onPick, onSaveIdea, onNew, onEdit, onC
 
         {current && (
           <div className="actions">
-            <button onClick={() => onEdit(current)}>✎ Edit {current.name}</button>
+            <button onClick={() => onEdit(current)}><Icon name="pencil" /> Edit {current.name}</button>
             {current.url && (
               <a className="button" href={current.url} target="_blank" rel="noreferrer">Recipe ↗</a>
             )}
@@ -382,7 +384,7 @@ function MealBox({ meals, onEdit, onNew, onClose }) {
         <div className="meal-tiles">
           {meals.map((m) => (
             <button key={m.id} className="meal-tile" onClick={() => onEdit(m)}>
-              {m.image ? <Thumb src={m.image} /> : <span className="meal-icon">{m.icon || '🍽️'}</span>}
+              {m.image ? <Thumb src={m.image} /> : <span className="meal-icon"><ItemIcon value={m.icon} fallback="plate" /></span>}
               <span className="meal-name">{m.name}</span>
             </button>
           ))}
@@ -410,7 +412,7 @@ function MealEditor({ meal, onSave, onDelete, onClose }) {
         <div className="row">
           <label className="icon-label">
             Icon
-            <input value={icon} onChange={(e) => setIcon(e.target.value)} maxLength={4} placeholder="🍽️" />
+            <IconPicker value={icon} fallback="plate" onChange={setIcon} />
           </label>
           <label>
             Name

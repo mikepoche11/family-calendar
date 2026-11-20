@@ -232,14 +232,14 @@ const BY_ID = Object.fromEntries(AVATARS.map((a) => [a.id, a]))
 /** A person's avatar: the chosen animal on a ring of their colour, or their initial if none chosen. */
 export default function Avatar({ person, size = 40 }) {
   const art = BY_ID[person?.avatar]
-  const color = person?.color ?? '#94a3b8'
+  const color = person?.color ?? '#cbd5e1'
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" className="avatar" aria-hidden="true">
       <circle cx="50" cy="50" r="48" fill={art ? '#ffffff' : color} stroke={color} strokeWidth="4" />
       {art ? (
         <g transform="translate(50 50) scale(0.86) translate(-50 -50)">{art.draw()}</g>
       ) : (
-        <text x="50" y="50" dy="0.35em" textAnchor="middle" fontSize="48" fontWeight="700" fill="#fff">
+        <text x="50" y="50" dy="0.35em" textAnchor="middle" fontSize="48" fontWeight="700" fill="#334155">
           {(person?.name ?? '?').slice(0, 1).toUpperCase()}
         </text>
       )}

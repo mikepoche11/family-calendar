@@ -29,6 +29,25 @@ def test_people_seeded(client):
     assert names == ["Mike", "Ava", "Family"]
 
 
+def test_bright_colors_switch_to_pastel_once(client):
+    colors = [p["color"] for p in client.get("/api/people").json()]
+    assert colors == ["#93c5fd", "#f9a8d4", "#cbd5e1"]
+    import app.main
+
+    db = app.main.app.state.s.db
+    mike = client.get("/api/people").json()[0]
+    client.patch(f"/api/people/{mike['id']}", json={"color": "#2563eb"})
+    db.pastelize_people()  # already done: a colour picked later is left alone
+    assert client.get("/api/people").json()[0]["color"] == "#2563eb"
+
+
+def test_pastel_mixes_unknown_colors():
+    from app.db import pastel
+
+    assert pastel("#fde68a") == "#fde68a"
+    assert pastel("#000000") == "#8c8c8c"
+
+
 def test_demo_events_have_owners(client):
     import asyncio
 
