@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from './api.js'
 import Avatar, { AVATAR_GROUPS, AvatarArt } from './avatars.jsx'
 import { Icon } from './icons.jsx'
-import { THEMES } from './themes.js'
+import { THEMES, backgroundShades, defaultBackground, lightness, themeById } from './themes.js'
 import PhotosPanel from './PhotosPanel.jsx'
 
 /** Pastel family colours (coral, peach, butter yellow, lime, mint, aqua, sky, blue, lilac, orchid, pink, grey). */
@@ -12,7 +12,7 @@ export const COLORS = [
 ]
 
 /** Settings: family (name, colour, avatar), whole-app theme, and photos. Saves as you tap. */
-export default function Settings({ people, onChanged, onClose, initialTab = 'family', onPreview, theme = '', onTheme }) {
+export default function Settings({ people, onChanged, onClose, initialTab = 'family', onPreview, theme = '', onTheme, backgrounds = {}, onBackground }) {
   const [tab, setTab] = useState(initialTab)
   const [selectedId, setSelectedId] = useState(people[0]?.id ?? null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -63,13 +63,18 @@ export default function Settings({ people, onChanged, onClose, initialTab = 'fam
 
         {tab === 'themes' && (
           <div className="editor">
+            <ThemeBackground
+              theme={themeById(theme)}
+              color={backgrounds[theme] ?? ''}
+              onChange={(c) => onBackground?.(theme, c)}
+            />
             <p className="hint">Changes the colours of the whole app, on the wall screen and every phone.</p>
             <div className="theme-grid">
               {THEMES.map((t) => (
                 <button
                   key={t.id || 'everyday'}
-                  className={`theme-choice ${theme === t.id ? 'on' : ''}`}
-                  style={{ '--tbg': t.swatch[0], '--tacc': t.swatch[1], '--tpri': t.swatch[2] }}
+                  className={`theme-choice ${theme === t.id ? 'on' : ''} ${lightness(backgrounds[t.id] ?? t.swatch[0]) < 0.3 ? 'dark' : ''}`}
+                  style={{ '--tbg': backgrounds[t.id] ?? t.swatch[0], '--tacc': t.swatch[1], '--tpri': t.swatch[2] }}
                   onClick={() => onTheme?.(t.id)}
                 >
                   <span className="theme-preview">
@@ -195,6 +200,33 @@ export default function Settings({ people, onChanged, onClose, initialTab = 'fam
           </div>
         )}
         {error && <p className="error">{error}</p>}
+      </div>
+    </div>
+  )
+}
+
+/** Background colour for the theme that's on: shade swatches, a full colour picker, and Reset. */
+function ThemeBackground({ theme, color, onChange }) {
+  const current = color || defaultBackground(theme)
+  const shades = backgroundShades(theme)
+  return (
+    <div className="theme-bg">
+      <div className="field-label">{theme.name} background</div>
+      <div className="swatches">
+        {shades.map((c, i) => (
+          <button
+            key={c + i}
+            className={`swatch ${current.toLowerCase() === c ? 'on' : ''}`}
+            style={{ background: c }}
+            aria-label={i === 0 ? 'Theme background' : `Shade ${c}`}
+            onClick={() => onChange(i === 0 ? '' : c)}
+          />
+        ))}
+        <label className="swatch custom-color" style={{ background: current }} title="Pick any colour">
+          <input type="color" value={current} onChange={(e) => onChange(e.target.value)} aria-label="Pick any colour" />
+          <span>+</span>
+        </label>
+        <button className="reset-bg" disabled={!color} onClick={() => onChange('')}>Reset</button>
       </div>
     </div>
   )

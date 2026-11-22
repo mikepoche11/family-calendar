@@ -10,6 +10,16 @@
 
 Themes: Everyday, Christmas, Mardi Gras, Valentine's, Easter, Summer, July 4th, Halloween, Back to school and Thanksgiving. While a holiday theme is on, three of its icons sit next to the date at the top of the wall screen.
 
+## Change a theme's background
+
+Each theme can have its own background colour, for example a darker green for Christmas.
+
+1. In **Settings > Themes**, turn on the theme you want to change.
+2. Under **"<theme> background"**, tap one of the shades (lightest to darkest), or tap the **+** circle to pick any colour.
+3. Tap **Reset** to go back to the theme's own background.
+
+The colour is saved for that theme only, and the wall and phones change together. On a dark background the clock and headings switch to white text so they stay easy to read.
+
 ## Holiday icons
 
 There are 60 original holiday icons (12 for Christmas, 6 for each other holiday). You can use any of them at any time, whatever theme is on:

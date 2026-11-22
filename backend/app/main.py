@@ -265,6 +265,7 @@ def config(request: Request):
         "screensaver_minutes": s.settings.screensaver_minutes,
         "slide_seconds": s.settings.slide_seconds,
         "theme": s.db.get_meta("theme") or "",
+        "theme_backgrounds": _theme_backgrounds(s),
     }
 
 
@@ -273,6 +274,33 @@ THEME = r"^[a-z0-9-]{0,32}$"  # id of a theme in frontend/src/themes.js; "" = th
 
 class ThemeIn(BaseModel):
     theme: str = Field(pattern=THEME)
+
+
+class ThemeBackgroundIn(BaseModel):
+    theme: str = Field(pattern=THEME)
+    color: str = Field(pattern=r"^(#[0-9a-fA-F]{6})?$")  # "" = back to the theme's own background
+
+
+def _theme_backgrounds(s) -> dict[str, str]:
+    try:
+        data = json.loads(s.db.get_meta("theme_backgrounds") or "{}")
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+@app.put("/api/theme/background")
+def set_theme_background(body: ThemeBackgroundIn, request: Request):
+    """Custom page background for one theme (e.g. a darker green for Christmas); "" resets it."""
+    s = st(request)
+    data = _theme_backgrounds(s)
+    if body.color:
+        data[body.theme] = body.color.lower()
+    else:
+        data.pop(body.theme, None)
+    s.db.set_meta("theme_backgrounds", json.dumps(data, sort_keys=True))
+    s.broadcaster.publish("theme")
+    return {"theme_backgrounds": data}
 
 
 @app.put("/api/theme")

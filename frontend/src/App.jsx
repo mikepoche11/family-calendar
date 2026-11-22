@@ -113,7 +113,22 @@ export default function App() {
     }
   }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadStickers, refetch])
 
-  useEffect(() => applyTheme(config.theme ?? ''), [config.theme])
+  const themeBg = config.theme_backgrounds?.[config.theme ?? ''] ?? ''
+  useEffect(() => applyTheme(config.theme ?? '', themeBg), [config.theme, themeBg])
+
+  async function chooseBackground(theme, color) {
+    setConfig((c) => {
+      const next = { ...(c.theme_backgrounds ?? {}) }
+      if (color) next[theme] = color
+      else delete next[theme]
+      return { ...c, theme_backgrounds: next }
+    })
+    try {
+      await api.setThemeBackground(theme, color)
+    } catch {
+      api.config().then(setConfig).catch(() => {})
+    }
+  }
 
   async function chooseTheme(theme) {
     setConfig((c) => ({ ...c, theme }))
@@ -379,6 +394,8 @@ export default function App() {
           onChanged={loadPeople}
           theme={config.theme ?? ''}
           onTheme={chooseTheme}
+          backgrounds={config.theme_backgrounds ?? {}}
+          onBackground={chooseBackground}
           onClose={() => {
             setShowSettings(false)
             loadPhotos()
