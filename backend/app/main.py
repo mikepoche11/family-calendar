@@ -510,6 +510,66 @@ def grocery_bulk(body: GroceryBulk, request: Request):
     return result
 
 
+# --- calendar stickers ---------------------------------------------------------------
+# Decorations only: saved in the app's database and never sent to Google Calendar.
+DAY = r"^\d{4}-\d{2}-\d{2}$"
+ICON = r"^[a-z0-9-]{1,32}$"
+
+
+class StickerIn(BaseModel):
+    day: str = Field(pattern=DAY)
+    icon: str = Field(pattern=ICON)
+    x: float = Field(0.5, ge=-1, le=2)
+    y: float = Field(0.5, ge=-1, le=2)
+    size: float = Field(0.6, ge=0.1, le=3)
+    rotation: float = Field(0, ge=-3600, le=3600)
+
+
+class StickerPatch(BaseModel):
+    day: str | None = Field(None, pattern=DAY)
+    x: float | None = Field(None, ge=-1, le=2)
+    y: float | None = Field(None, ge=-1, le=2)
+    size: float | None = Field(None, ge=0.1, le=3)
+    rotation: float | None = Field(None, ge=-3600, le=3600)
+
+
+def _norm_rotation(deg: float | None) -> float | None:
+    return None if deg is None else round(((deg + 180) % 360) - 180, 2)
+
+
+@app.get("/api/stickers")
+def stickers_list(request: Request, start: str | None = Query(None, pattern=DAY), end: str | None = Query(None, pattern=DAY)):
+    return st(request).db.list_stickers(start, end)
+
+
+@app.post("/api/stickers", status_code=201)
+def sticker_add(body: StickerIn, request: Request):
+    s = st(request)
+    sticker = s.db.add_sticker(body.day, body.icon, body.x, body.y, body.size, _norm_rotation(body.rotation))
+    s.broadcaster.publish("stickers")
+    return sticker
+
+
+@app.patch("/api/stickers/{sid}")
+def sticker_update(sid: int, body: StickerPatch, request: Request):
+    s = st(request)
+    fields = body.model_dump()
+    fields["rotation"] = _norm_rotation(body.rotation)
+    sticker = s.db.update_sticker(sid, **fields)
+    if not sticker:
+        raise HTTPException(404, "No such sticker")
+    s.broadcaster.publish("stickers")
+    return sticker
+
+
+@app.delete("/api/stickers/{sid}", status_code=204)
+def sticker_delete(sid: int, request: Request):
+    s = st(request)
+    if not s.db.delete_sticker(sid):
+        raise HTTPException(404, "No such sticker")
+    s.broadcaster.publish("stickers")
+
+
 # --- chores -------------------------------------------------------------------------
 def _today(s: State):
     return datetime.now(ZoneInfo(s.settings.timezone)).date()

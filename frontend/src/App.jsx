@@ -17,6 +17,7 @@ import Marbles from './Marbles.jsx'
 import Meals from './Meals.jsx'
 import { Icon } from './icons.jsx'
 import { applyTheme, themeById } from './themes.js'
+import { ListDayStickers, StickerLayer, StickerPicker, toDay } from './Stickers.jsx'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -55,7 +56,16 @@ export default function App() {
   const [choresVersion, setChoresVersion] = useState(0)
   const [marblesVersion, setMarblesVersion] = useState(0)
   const [mealsVersion, setMealsVersion] = useState(0)
+  const [range, setRange] = useState(null) // visible days, for stickers
+  const [stickers, setStickers] = useState([])
+  const [stickerPicker, setStickerPicker] = useState(false)
+  const [placing, setPlacing] = useState(null) // icon waiting to be tapped onto a day
 
+  const stickersByDay = useMemo(() => {
+    const by = {}
+    for (const s of stickers) (by[s.day] ??= []).push(s)
+    return by
+  }, [stickers])
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
 
@@ -63,6 +73,13 @@ export default function App() {
   const loadWeather = useCallback(() => api.weather().then(setWeather).catch(() => {}), [])
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
   const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
+  const rangeRef = useRef(null)
+  rangeRef.current = range
+  const loadStickers = useCallback(() => {
+    const r = rangeRef.current
+    if (r) api.stickers(r.start, r.end).then(setStickers).catch(() => {})
+  }, [])
+  useEffect(loadStickers, [range?.start, range?.end, loadStickers])
 
   useEffect(() => {
     loadPeople()
@@ -86,6 +103,7 @@ export default function App() {
       if (kind === 'chores') return setChoresVersion((v) => v + 1)
       if (kind === 'marbles') return setMarblesVersion((v) => v + 1)
       if (kind === 'meals') return setMealsVersion((v) => v + 1)
+      if (kind === 'stickers') return loadStickers()
       refetch()
     })
     return () => {
@@ -93,7 +111,7 @@ export default function App() {
       clearInterval(h)
       unsubscribe()
     }
-  }, [loadPeople, loadWeather, loadHealth, loadPhotos, refetch])
+  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadStickers, refetch])
 
   const themeBg = config.theme_backgrounds?.[config.theme ?? ''] ?? ''
   useEffect(() => applyTheme(config.theme ?? '', themeBg), [config.theme, themeBg])
@@ -151,6 +169,8 @@ export default function App() {
       timer = setTimeout(() => {
         setDraft(null)
         setShowSettings(false)
+        setStickerPicker(false)
+        setPlacing(null)
         setSection('calendar')
         const cal = calRef.current?.getApi()
         if (cal) {
@@ -298,17 +318,39 @@ export default function App() {
         </button>
         {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
         {health?.mode === 'demo' && <span className="demo">Demo data</span>}
+        <button className="sticker-btn" onClick={() => setStickerPicker(true)}>
+          <Icon name="star" /> Stickers
+        </button>
         <button className="settings-btn" onClick={() => setShowSettings('family')} aria-label="Settings">
           <Icon name="gear" /> Settings
         </button>
       </div>
+
+      {placing && (
+        <div className="placing-banner">
+          <Icon name={placing} size="1.8em" /> Tap a day to stick it there
+          <button onClick={() => setPlacing(null)}>Cancel</button>
+        </div>
+      )}
 
       <main className="calendar">
         <FullCalendar
           ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
           initialView={isPhone ? PHONE_VIEW : DEFAULT_VIEW}
-          views={{ listTwoWeeks: { type: 'list', duration: { days: 14 } } }}
+          views={{
+            listTwoWeeks: {
+              type: 'list',
+              duration: { days: 14 },
+              dayHeaderContent: (arg) => (
+                <>
+                  <a className="fc-list-day-text">{arg.text}</a>
+                  <ListDayStickers stickers={stickersByDay[toDay(arg.date)]} />
+                  <a className="fc-list-day-side-text">{arg.sideText}</a>
+                </>
+              ),
+            },
+          }}
           headerToolbar={false}
           height="100%"
           nowIndicator
@@ -323,10 +365,20 @@ export default function App() {
           datesSet={(info) => {
             setView(info.view.type)
             setTitle(info.view.title)
+            setRange({ start: toDay(info.start), end: toDay(info.end), key: `${info.view.type} ${info.startStr}` })
           }}
           dateClick={(info) => setDraft(draftFrom({ start: info.date, allDay: info.allDay }))}
           select={(info) => setDraft(draftFrom({ start: info.start, end: info.end, allDay: info.allDay }))}
           eventClick={(info) => setDraft(draftFrom({ event: info.event.extendedProps.row }))}
+        />
+        <StickerLayer
+          stickers={stickers}
+          setStickers={setStickers}
+          reload={loadStickers}
+          viewType={view}
+          layoutKey={range?.key}
+          placing={placing}
+          onPlaced={() => setPlacing(null)}
         />
       </main>
 
@@ -351,6 +403,18 @@ export default function App() {
           onPreview={() => {
             setShowSettings(false)
             loadPhotos().then(() => setScreensaver(true))
+          }}
+        />
+      )}
+
+      {stickerPicker && (
+        <StickerPicker
+          themeIcons={themeById(config.theme).icons}
+          onClose={() => setStickerPicker(false)}
+          onPick={(icon) => {
+            setStickerPicker(false)
+            setSection('calendar')
+            setPlacing(icon)
           }}
         />
       )}

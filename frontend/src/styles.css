@@ -82,8 +82,8 @@ button.danger { color: var(--danger); border-color: var(--danger); }
 .sync-error, .demo { font-size: 18px; margin-left: auto; }
 .sync-error { color: var(--danger); }
 .demo { color: var(--muted); }
-.settings-btn { margin-left: auto; }
-.sync-error + .settings-btn, .demo + .settings-btn { margin-left: 0; }
+.sticker-btn { margin-left: auto; }
+.sync-error + .sticker-btn, .demo + .sticker-btn { margin-left: 0; }
 
 /* family settings */
 .modal.settings { width: min(960px, 94vw); max-height: 92vh; overflow-y: auto; }
@@ -433,6 +433,36 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 .group-label { font-size: 16px; font-weight: 600; color: var(--muted); margin: 10px 0 6px; }
 .icon-group + .icon-group { margin-top: 14px; }
 .icon-group .field-label { margin-bottom: 8px; }
+
+/* calendar stickers */
+.calendar { position: relative; }
+.sticker-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; touch-action: none; }
+.sticker-layer.editing, .sticker-layer.placing { pointer-events: auto; }
+.sticker-layer.placing { cursor: crosshair; background: color-mix(in srgb, var(--accent-soft) 25%, transparent); }
+.sticker {
+  position: absolute; pointer-events: auto; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+  filter: drop-shadow(0 3px 4px rgba(80, 60, 30, 0.25));
+}
+.sticker .ic { display: block; width: 100%; height: 100%; margin: 0; pointer-events: none; }
+.sticker.on { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: 10px; cursor: grabbing; }
+.st-handle {
+  position: absolute; width: 34px; height: 34px; min-width: 34px; min-height: 34px; box-sizing: border-box; border-radius: 50%; padding: 0;
+  background: var(--panel); border: 2px solid var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  display: grid; place-items: center; touch-action: none;
+}
+.st-delete { top: -22px; left: -22px; font-size: 24px; line-height: 1; color: var(--accent-ink); background: var(--accent-soft); cursor: pointer; }
+.st-resize { right: -22px; bottom: -22px; cursor: nwse-resize; }
+.st-resize::after { content: ''; width: 12px; height: 12px; border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent); }
+.st-rotate { top: -54px; left: calc(50% - 17px); cursor: alias; }
+.st-rotate::before { content: ''; position: absolute; top: 32px; left: 15px; width: 2px; height: 18px; background: var(--accent); }
+.st-rotate::after { content: '↻'; font-size: 20px; color: var(--accent-ink); }
+.placing-banner {
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; font-size: 20px; font-weight: 600;
+  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 16px;
+}
+.placing-banner button { margin-left: auto; }
+.list-stickers { float: left; display: inline-flex; gap: 4px; margin: -4px 0 -4px 12px; }
+.icon-picker .hint { margin: 0; color: var(--muted); font-size: 17px; }
 
 /* custom theme background: colour picker, and light text on dark backgrounds */
 .theme-bg { display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; }

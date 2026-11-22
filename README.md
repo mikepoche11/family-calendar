@@ -25,6 +25,7 @@ colours events by family member, and shows weather.
 - Chores: today's chores in a column per kid plus an "Anyone" column, big tap-to-check tiles, progress bars, a starter set, and an editor for who/which days. Checkmarks clear at midnight. A chore can be worth blue marbles that drop into the kid's jar when it's checked off ([how it works](docs/chore-marbles.md))
 - Marble jars: a glass jar per kid. Blue marbles are earned and spent on rewards (big ice cream 5, small ice cream 3, Coke/Sprite/Dr Pepper 3); white marbles stay until you press Cancel out, which removes whites and blues in pairs with an animation. Undo last fixes a mis-tap, and rewards are editable
 - Photo screensaver after 10 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
+- Calendar stickers: drop any of the app's icons on a day, then drag, resize, turn or remove it with a finger or the mouse. Saved in the app only, never added to Google Calendar ([how to use them](docs/calendar-stickers.md))
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix
 - Clock, date, current weather and 4-day forecast (Open-Meteo, no key needed)
 - Live refresh: changes show on every open screen within a second
@@ -51,6 +52,7 @@ project for the full plan.
 3. [Connect the Google calendar](docs/google-setup.md)
 4. [Photo screensaver](docs/photos-setup.md) (optional)
 5. [Meal planning](docs/meal-planning.md) (how to use it)
+6. [Calendar stickers](docs/calendar-stickers.md) (how to use them)
 
 ## Develop
 
