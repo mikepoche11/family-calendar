@@ -605,6 +605,63 @@ more["thanks-sunflower"] = (
   + eyes(60, dx=9, r=3) + cheeks(68, dx=15, r=4) + smile(67, w=5)
 )
 
+# ================= SHOW NIGHT TV (one per theme; used by the Marbles page widget, not in the icon picker) =================
+def tv(bg, body, screen="#fdf8ef", knob=None, top="", deco="", face_svg=None, antenna=True, ball=None, legs=INK):
+    knob = knob or WHITE; ball = ball or body
+    ant = (f'<g stroke="{INK}" stroke-width="3" stroke-linecap="round"><path d="M60 36 L42 16"/><path d="M60 36 L78 16"/></g>'
+           f'<circle cx="42" cy="16" r="5" fill="{ball}"/><circle cx="78" cy="16" r="5" fill="{ball}"/>') if antenna else ""
+    f_ = face_svg if face_svg is not None else eyes(60, dx=9, r=3.2, cx=54) + cheeks(68, dx=16, r=4, cx=54) + smile(67, w=5, cx=54)
+    return (
+      C.format(bg) + ant +
+      f'<g stroke="{legs}" stroke-width="4" stroke-linecap="round"><path d="M38 92 L32 104"/><path d="M82 92 L88 104"/></g>'
+      f'<rect x="20" y="34" width="80" height="60" rx="15" fill="{body}"/>'
+      f'<rect x="28" y="42" width="52" height="44" rx="10" fill="{screen}"/>'
+      f'<path d="M34 50 q4 -4 10 -4" stroke="{WHITE}" stroke-width="3" stroke-linecap="round" fill="none" opacity=".9"/>'
+      f'<circle cx="90" cy="54" r="4.5" fill="{knob}"/><circle cx="90" cy="68" r="4.5" fill="{knob}"/>'
+      f'<path d="M86 80 h8" stroke="{knob}" stroke-width="3" stroke-linecap="round"/>'
+      + f_ + top + deco
+    )
+
+def heartp(cx, cy, s, fill):
+    return f'<path d="{heart(cx, cy, s)}" fill="{fill}"/>'
+
+TV = {}
+TV["tv-everyday"] = tv("#ede9fe", LILAC, ball=GOLDL, knob=GOLDL,
+  deco=star(72, 78, 4.5))
+TV["tv-christmas"] = tv(MINT, GREEN, antenna=False, knob=RED,
+  top=f'<path d="M24 38 Q40 2 82 10 Q92 12 96 26 L80 38 Z" fill="{RED}"/>'
+      f'<circle cx="96" cy="26" r="7" fill="{WHITE}" stroke="{EDGE}" stroke-width="1.5"/>'
+      f'<rect x="16" y="30" width="72" height="12" rx="6" fill="{WHITE}" stroke="{EDGE}" stroke-width="1.5"/>')
+beads = "".join(f'<circle cx="{22+i*6.6:.1f}" cy="{36+10*math.sin(math.pi*i/11):.1f}" r="3.4" fill="{("#a78bfa", "#6fcf97", "#fcd34d")[i%3]}"/>' for i in range(12))
+TV["tv-mardi-gras"] = tv(CREAM, PURPLE, ball="#fcd34d", knob="#6fcf97", top=beads)
+TV["tv-valentines"] = tv(PINK, "#f9a8d4", antenna=False, knob=RED,
+  top=f'<g stroke="{INK}" stroke-width="3" stroke-linecap="round"><path d="M60 36 L42 18"/><path d="M60 36 L78 18"/></g>'
+      + heartp(42, 18, 7, RED) + heartp(78, 18, 7, RED), deco=heartp(72, 79, 4, RED))
+TV["tv-easter"] = tv("#e9f6ee", SKY, antenna=False, knob=PINK,
+  top=f'<ellipse cx="44" cy="20" rx="8" ry="18" fill="{SKY}" transform="rotate(-14 44 20)"/>'
+      f'<ellipse cx="76" cy="20" rx="8" ry="18" fill="{SKY}" transform="rotate(14 76 20)"/>'
+      f'<ellipse cx="44" cy="21" rx="4" ry="12" fill="{PINK}" transform="rotate(-14 44 21)"/>'
+      f'<ellipse cx="76" cy="21" rx="4" ry="12" fill="{PINK}" transform="rotate(14 76 21)"/>')
+shades = (f'<g fill="{INK}"><rect x="38" y="54" width="14" height="10" rx="4"/><rect x="56" y="54" width="14" height="10" rx="4"/></g>'
+          f'<path d="M52 57 h4" stroke="{INK}" stroke-width="2.5"/>' + cheeks(70, dx=16, r=4, cx=54) + smile(70, w=5, cx=54))
+TV["tv-summer"] = tv(ICE, GOLDL, knob=ORANGE, ball=ORANGE, face_svg=shades)
+TV["tv-july-4th"] = tv("#dbeafe", ROSE, antenna=False, knob=BLUE,
+  top=f'<g stroke="{INK}" stroke-width="3" stroke-linecap="round"><path d="M60 36 L42 18"/><path d="M60 36 L78 18"/></g>'
+      + star(42, 17, 8) + star(78, 17, 8),
+  deco=''.join(f'<rect x="20" y="{y}" width="80" height="3" fill="{WHITE}" opacity=".7"/>' for y in ()) )
+TV["tv-halloween"] = tv(LAV, ORANGE, antenna=False, knob="#a78bfa",
+  top=f'<path d="M38 36 L58 2 L82 36 Z" fill="{SLATE}" stroke="{SLATE}" stroke-width="3" stroke-linejoin="round"/>'
+      f'<rect x="26" y="30" width="68" height="9" rx="4.5" fill="{SLATE}"/>'
+      f'<rect x="40" y="25" width="38" height="6" fill="#a78bfa"/>')
+TV["tv-back-to-school"] = tv("#fef9c3", BLUE, knob=RED, ball=RED,
+  top=f'<path d="M60 22 Q60 14 66 10" stroke="{BROWN}" stroke-width="3" stroke-linecap="round" fill="none"/>'
+      f'<ellipse cx="68" cy="14" rx="6" ry="3" fill="{TREE}" transform="rotate(-25 68 14)"/>'
+      f'<path d="M60 26 C52 18 40 24 44 34 L76 34 C80 24 68 18 60 26 Z" fill="{RED}"/>', antenna=False)
+leaf = lambda x, y, deg, c: f'<path d="M{x} {y} q-7 -10 0 -20 q7 10 0 20 Z" fill="{c}" transform="rotate({deg} {x} {y})"/>'
+TV["tv-thanksgiving"] = tv(CREAM, TAN, knob=BROWN, ball=ORANGE,
+  top=leaf(26, 40, -40, ORANGE) + leaf(30, 38, 0, "#fb923c") + leaf(34, 40, 40, GOLDL) + f'<circle cx="30" cy="38" r="3" fill="{BROWN}"/>')
+for k in TV: assert len(k) <= 32
+
 xmas_names = {"santa":"Santa","mrs-claus":"Mrs. Claus","elf":"Elf","snowman":"Snowman","reindeer":"Reindeer",
   "gingerbread":"Gingerbread","penguin":"Penguin","polar-bear":"Polar bear","tree":"Tree","ornament":"Ornament",
   "peppermint":"Peppermint","present":"Present"}
@@ -619,17 +676,22 @@ REPO = Path(__file__).resolve().parents[2]
 OUT = sys.argv[1] if len(sys.argv) > 1 else None  # optional folder for standalone .svg files
 # careful: body uses "CLIP" placeholder and "__CLIP__x" ids; replace placeholder only when standalone
 def inner(k):
-    b = re.sub(r'(?<![_A-Za-z])CLIP(?![_A-Za-z])', 'clip-path="url(#__CLIP__)"', ALL[k])
+    b = re.sub(r'(?<![_A-Za-z])CLIP(?![_A-Za-z])', 'clip-path="url(#__CLIP__)"', {**ALL, **TV}[k])
     return '<defs><clipPath id="__CLIP__"><circle cx="60" cy="64" r="50"/></clipPath></defs>' + b
 if OUT:
   os.makedirs(OUT, exist_ok=True)
-  for k in ALL:
+  for k in [*ALL, *TV]:
     open(f"{OUT}/{k}.svg","w").write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">' + inner(k).replace("__CLIP__", "c-"+k) + '</svg>')
 js = ["/**", " * Holiday icons (original art drawn for this project, no licence needed): flat pastel circles, 120x120 box.",
       " * Generated by tools/holiday-icons/build.py (do not edit by hand); __CLIP__ is replaced with a unique id per use.", " */",
       "export const HOLIDAY_ART = {"]
 for k in ALL: js.append(f"  '{k}': {json.dumps(inner(k))},")
 js.append("}"); js.append("")
-js.append("export const HOLIDAY_NAMES = " + json.dumps(NAMES, indent=2) + "\n")
+js.append("export const HOLIDAY_NAMES = " + json.dumps(NAMES, indent=2))
+js.append("")
+js.append("/** Show night TV, one per theme (keyed by theme id; 'everyday' for the default look). Same 120x120 box. */")
+js.append("export const TV_ART = {")
+for k in TV: js.append(f"  '{k[3:]}': {json.dumps(inner(k))},")
+js.append("}\n")
 open(REPO / "frontend/src/holidayArt.js","w").write("\n".join(js))
 print(len(ALL))

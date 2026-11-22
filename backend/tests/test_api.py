@@ -253,3 +253,14 @@ def test_theme_background_custom_and_reset(client):
     assert client.put("/api/theme/background", json={"theme": "christmas", "color": "green"}).status_code == 422
     client.put("/api/theme/background", json={"theme": "christmas", "color": ""})
     assert client.get("/api/config").json()["theme_backgrounds"] == {"": "#ffeedd"}
+
+
+def test_show_night_api(client):
+    people = {p["name"]: p["id"] for p in client.get("/api/people").json()}
+    # No Aaron/Jordyn in this family: nobody until a list is set
+    assert client.get("/api/marbles").json()["show_night"]["tonight"] is None
+    out = client.put("/api/show-night", json={"person_ids": [people["Ava"], people["Mike"]]}).json()
+    assert out["tonight"] == people["Ava"] and out["tomorrow"] == people["Mike"]
+    assert client.post("/api/show-night/swap").json()["tonight"] == people["Mike"]
+    assert client.get("/api/show-night").json()["tonight"] == people["Mike"]
+    assert client.put("/api/show-night", json={"person_ids": [999]}).status_code == 422

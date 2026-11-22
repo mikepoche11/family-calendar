@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './api.js'
 import Avatar from './avatars.jsx'
-import { Icon, ItemIcon } from './icons.jsx'
+import { Icon, ItemIcon, TvIcon } from './icons.jsx'
 import IconPicker from './IconPicker.jsx'
 
 // Inside of the glass, in px. Marbles are laid out from the bottom up.
@@ -81,7 +81,7 @@ function lineup(leaving, size) {
 }
 
 /** Marble jars, one per kid. Blue = good and spendable, white = stays until cancelled out. */
-export default function Marbles({ people, version }) {
+export default function Marbles({ people, version, theme = '' }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [spending, setSpending] = useState(null) // jar waiting for a reward choice
@@ -104,6 +104,16 @@ export default function Marbles({ people, version }) {
   useEffect(() => {
     load()
   }, [version])
+
+  // New day: reload at midnight so show night moves to the next kid
+  useEffect(() => {
+    const t = setInterval(() => {
+      const d = new Date()
+      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      if (data?.show_night && local !== data.show_night.date) load()
+    }, 60 * 1000)
+    return () => clearInterval(t)
+  }, [data])
 
   const peopleById = useMemo(() => Object.fromEntries(people.map((p) => [p.id, p])), [people])
 
@@ -172,6 +182,13 @@ export default function Marbles({ people, version }) {
     <main className="marbles">
       <div className="chores-head">
         <span className="chores-title">Marble jars</span>
+        <ShowNight
+          show={data.show_night}
+          peopleById={peopleById}
+          theme={theme}
+          onSwap={() => run(() => api.swapShowNight())}
+          onSetup={() => setSettings(true)}
+        />
         <button onClick={() => setSettings(true)}><Icon name="gear" /> Jars &amp; rewards</button>
       </div>
       {error && <p className="error">{error}</p>}
@@ -249,11 +266,44 @@ export default function Marbles({ people, version }) {
           people={people}
           jars={data.jars}
           rewards={data.rewards}
+          showOrder={data.show_night?.order ?? []}
           onChanged={load}
           onClose={() => setSettings(false)}
         />
       )}
     </main>
+  )
+}
+
+/** Whose night it is to pick the TV show. Turns change at midnight; Swap gives tonight to the next kid. */
+function ShowNight({ show, peopleById, theme, onSwap, onSetup }) {
+  const kid = show && peopleById[show.tonight]
+  const next = show && peopleById[show.tomorrow]
+  if (!kid) {
+    return (
+      <button className="show-night empty" onClick={onSetup}>
+        <TvIcon theme={theme} size={52} />
+        <span>Set up show night</span>
+      </button>
+    )
+  }
+  return (
+    <div className="show-night" style={{ '--chip': kid.color }}>
+      <TvIcon theme={theme} size={76} />
+      <div className="who">
+        <span className="label">Show night</span>
+        <span className="kid">
+          <Avatar person={kid} size={34} />
+          <b>{kid.name}</b> picks tonight
+        </span>
+        {next && next.id !== kid.id && <span className="next">{next.name} tomorrow</span>}
+      </div>
+      {next && next.id !== kid.id && (
+        <button className="swap" onClick={onSwap} aria-label={`Give tonight to ${next.name}`}>
+          <Icon name="swap" /> Swap
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -386,7 +436,7 @@ function JarSetup({ people, onDone }) {
   )
 }
 
-function JarSettings({ people, jars, rewards, onChanged, onClose }) {
+function JarSettings({ people, jars, rewards, showOrder, onChanged, onClose }) {
   const [error, setError] = useState(null)
   const [confirm, setConfirm] = useState(null) // person whose jar is about to be removed
   const has = new Set(jars.map((j) => j.person_id))
@@ -447,6 +497,28 @@ function JarSettings({ people, jars, rewards, onChanged, onClose }) {
             </button>
           </div>
         )}
+
+        <div className="field-label">Show night: who takes turns picking the TV show</div>
+        <p className="note">Tap kids in the order they take turns. They swap every night at midnight.</p>
+        <div className="chips">
+          {people.map((p) => {
+            const at = showOrder.indexOf(p.id)
+            return (
+              <button
+                key={p.id}
+                className={`chip ${at >= 0 ? 'on' : ''}`}
+                style={{ '--chip': p.color }}
+                onClick={() =>
+                  run(() => api.setShowNight(at >= 0 ? showOrder.filter((id) => id !== p.id) : [...showOrder, p.id]))
+                }
+              >
+                <Avatar person={p} size={32} />
+                {p.name}
+                {at >= 0 && <span className="turn">{at + 1}</span>}
+              </button>
+            )
+          })}
+        </div>
 
         <div className="field-label">Rewards</div>
         <div className="chore-rows">
