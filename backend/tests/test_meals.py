@@ -25,8 +25,8 @@ def test_meal_box_and_plan(meals):
     tacos = m.create("Tacos", "🌮", ["Ground beef", " ground beef ", "", "Shells"])
     assert tacos["ingredients"] == ["Ground beef", "Shells"]
     assert m.create("tacos")["id"] == tacos["id"]  # same name: no duplicate
-    assert m.set_day(MON, tacos["id"])
-    assert not m.set_day(MON, 9999)
+    assert m.set_day(MON, tacos["id"]) == 0
+    assert m.set_day(MON, 9999) is None
     week = m.week(MON)
     assert [d["date"] for d in week][0] == "2026-11-16" and len(week) == 7
     assert week[0]["meal"]["name"] == "Tacos" and week[1]["meal"] is None
@@ -168,3 +168,49 @@ def test_api_ideas_and_fill(client):
     assert client.get("/api/meals/ideas", params={"q": "chicken"}).json()["ideas"][0]["name"]
     assert client.post("/api/meals/starter").json()["added"] == 11
     assert client.post("/api/meal-plan/fill", params={"start": "2026-11-16"}).json()["filled"] == 7
+
+
+def test_clearing_a_dinner_takes_its_groceries_off(meals):
+    m, db = meals
+    tue, fri = "2026-11-17", "2026-11-20"
+    tacos = m.create("Tacos", "", ["Ground beef", "Onion", "Shells"])
+    gumbo = m.create("Gumbo", "", ["Onion (2)", "Okra"])
+    pizza = m.create("Pizza", "", ["Dough"])
+    m.set_day(date(2026, 11, 17), tacos["id"])
+    m.set_day(date(2026, 11, 20), gumbo["id"])
+    db.add_grocery("Shells")  # by hand, before the dinner sent it
+    r = db.add_grocery_lines([("Ground beef", [tue]), ("Onion", [tue, fri]), ("Shells", [tue]), ("Okra", [fri])])
+    assert r["added"] == ["Ground beef", "Onion", "Okra"] and r["skipped"] == ["Shells"]
+    beef = next(i for i in db.list_grocery() if i["text"] == "Ground beef")
+    db.update_grocery(beef["id"], done=True)  # already bought: still goes
+    db.add_grocery("Milk")
+
+    assert m.set_day(date(2026, 11, 17), tacos["id"]) == 0  # same meal again: nothing changes
+    assert m.set_day(date(2026, 11, 17), pizza["id"]) == 1  # swap: beef goes, onion is still for Friday
+    assert sorted(i["text"] for i in db.list_grocery()) == ["Milk", "Okra", "Onion", "Shells"]
+    assert m.set_day(date(2026, 11, 20), None) == 2  # clear Friday: onion and okra go
+    assert sorted(i["text"] for i in db.list_grocery()) == ["Milk", "Shells"]
+
+
+def test_already_listed_line_joins_a_dinner_item_but_not_a_hand_item(meals):
+    m, db = meals
+    a, b = date(2026, 11, 17), date(2026, 11, 18)
+    stew = m.create("Stew", "", ["Carrots"])
+    m.set_day(a, stew["id"])
+    m.set_day(b, stew["id"])
+    db.add_grocery_lines([("Carrots", [a.isoformat()])])
+    assert db.add_grocery_lines([("Carrots (2)", [b.isoformat()])])["skipped"] == ["Carrots (2)"]
+    m.set_day(a, None)
+    assert [i["text"] for i in db.list_grocery()] == ["Carrots"]  # Wednesday still needs them
+    assert m.delete(stew["id"])  # deleting the meal clears Wednesday too
+    assert db.list_grocery() == []
+
+
+def test_api_clear_night_removes_groceries(client):
+    meal = client.post("/api/meals", json={"name": "Gumbo", "ingredients": ["Roux", "Okra"]}).json()
+    client.put("/api/meal-plan/2026-11-18", json={"meal_id": meal["id"]})
+    items = [{"text": t, "days": ["2026-11-18"]} for t in meal["ingredients"]] + ["Milk"]
+    assert client.post("/api/grocery/bulk", json={"items": items}).json()["added"] == ["Roux", "Okra", "Milk"]
+    assert client.post("/api/grocery/bulk", json={"items": [{"text": "x", "days": ["soon"]}]}).status_code == 422
+    assert client.put("/api/meal-plan/2026-11-18", json={"meal_id": None}).json() == {"ok": True, "removed": 2}
+    assert [i["text"] for i in client.get("/api/grocery").json()] == ["Milk"]
