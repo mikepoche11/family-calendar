@@ -57,7 +57,8 @@
   .people .chip { flex: none; min-height: 40px; font-size: 15px; padding: 0 12px 0 4px; gap: 6px; }
   .people .chip .avatar { width: 30px; height: 30px; }
   .people .sync-error, .people .demo { flex: none; font-size: 14px; margin-left: 4px; white-space: nowrap; }
-  .people .settings-btn { flex: none; margin-left: 4px; min-height: 40px; font-size: 15px; }
+  .people .settings-btn, .people .sticker-btn { flex: none; margin-left: 4px; min-height: 40px; font-size: 15px; }
+  .placing-banner { font-size: 16px; }
 
   .calendar { padding: 4px; border-radius: 12px; }
   .fc { font-size: 15px; }

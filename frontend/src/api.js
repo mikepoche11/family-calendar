@@ -63,6 +63,10 @@ export const api = {
   disconnectPhotos: () => request('POST', '/api/photos/disconnect'),
   deletePhoto: (name) => request('DELETE', `/api/photos/file/${encodeURIComponent(name)}`),
   deleteAllPhotos: () => request('DELETE', '/api/photos'),
+  stickers: (start, end) => request('GET', `/api/stickers?start=${start}&end=${end}`),
+  addSticker: (body) => request('POST', '/api/stickers', body),
+  updateSticker: (id, body) => request('PATCH', `/api/stickers/${id}`, body),
+  deleteSticker: (id) => request('DELETE', `/api/stickers/${id}`),
   events: (start, end) =>
     request('GET', `/api/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
   createEvent: (body) => request('POST', '/api/events', body),

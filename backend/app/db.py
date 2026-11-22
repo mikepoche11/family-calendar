@@ -38,6 +38,18 @@ CREATE TABLE IF NOT EXISTS grocery (
     done_at    TEXT
 );
 
+-- Decorations stuck on the calendar. Only stored here, never sent to Google Calendar.
+CREATE TABLE IF NOT EXISTS stickers (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    day      TEXT NOT NULL,              -- YYYY-MM-DD the sticker belongs to
+    icon     TEXT NOT NULL,              -- icon name from the app's icon set
+    x        REAL NOT NULL DEFAULT 0.5,  -- centre, as a fraction of the day's width (can go past 0..1)
+    y        REAL NOT NULL DEFAULT 0.5,  -- centre, as a fraction of the day's height
+    size     REAL NOT NULL DEFAULT 0.6,  -- width, as a fraction of the day's shorter side
+    rotation REAL NOT NULL DEFAULT 0     -- degrees
+);
+CREATE INDEX IF NOT EXISTS stickers_day ON stickers(day);
+
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -282,6 +294,40 @@ class Database:
     def clear_checked_grocery(self) -> int:
         with self.connect() as conn:
             return conn.execute("DELETE FROM grocery WHERE done = 1").rowcount
+
+
+    # --- calendar stickers ----------------------------------------------------
+    STICKER_COLS = "id, day, icon, x, y, size, rotation"
+
+    def list_stickers(self, start: str | None = None, end: str | None = None) -> list[dict]:
+        """Stickers on days start <= day < end (YYYY-MM-DD); all of them when no range is given."""
+        sql, args = f"SELECT {self.STICKER_COLS} FROM stickers", []
+        if start and end:
+            sql, args = sql + " WHERE day >= ? AND day < ?", [start, end]
+        with self.connect() as conn:
+            return [dict(r) for r in conn.execute(sql + " ORDER BY id", args).fetchall()]
+
+    def add_sticker(self, day: str, icon: str, x: float, y: float, size: float, rotation: float) -> dict:
+        with self.connect() as conn:
+            sid = conn.execute(
+                "INSERT INTO stickers(day, icon, x, y, size, rotation) VALUES(?, ?, ?, ?, ?, ?)",
+                (day, icon, x, y, size, rotation),
+            ).lastrowid
+            return dict(conn.execute(f"SELECT {self.STICKER_COLS} FROM stickers WHERE id = ?", (sid,)).fetchone())
+
+    def update_sticker(self, sid: int, **fields) -> dict | None:
+        cols = {k: v for k, v in fields.items() if k in ("day", "x", "y", "size", "rotation") and v is not None}
+        with self.connect() as conn:
+            if cols:
+                conn.execute(
+                    f"UPDATE stickers SET {', '.join(f'{k} = ?' for k in cols)} WHERE id = ?", (*cols.values(), sid)
+                )
+            row = conn.execute(f"SELECT {self.STICKER_COLS} FROM stickers WHERE id = ?", (sid,)).fetchone()
+        return dict(row) if row else None
+
+    def delete_sticker(self, sid: int) -> bool:
+        with self.connect() as conn:
+            return conn.execute("DELETE FROM stickers WHERE id = ?", (sid,)).rowcount > 0
 
 
 def _item_key(text: str) -> str:
