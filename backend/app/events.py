@@ -7,7 +7,10 @@ is read from its title:
     "[Mike] Dentist"     -> Mike
     "Mike & Ava: Recital"-> Mike (first match wins)
 
-Events with no name match belong to nobody and show in the neutral family colour.
+Events with no name match belong to nobody.
+
+Each event also keeps the colour picked for it in Google Calendar (its colorId, "1".."11").
+The wall calendar shows events in that colour; see frontend/src/googleColors.js.
 """
 
 from __future__ import annotations
@@ -68,6 +71,7 @@ def from_google(item: dict, people: list[dict]) -> dict | None:
         "person_id": match_person(summary, people),
         "recurring": int(bool(item.get("recurringEventId"))),
         "updated": item.get("updated", ""),
+        "color_id": item.get("colorId") or "",
     }
 
 
@@ -78,6 +82,9 @@ def to_google(payload: dict, tz: str) -> dict:
         body["description"] = payload["description"]
     if payload.get("location"):
         body["location"] = payload["location"]
+    if "color_id" in payload:
+        # None clears the colour on a patch, so the event goes back to the calendar's default
+        body["colorId"] = payload["color_id"] or None
     if payload.get("all_day"):
         body["start"] = {"date": payload["start"][:10]}
         body["end"] = {"date": payload["end"][:10]}

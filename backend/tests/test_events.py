@@ -84,3 +84,16 @@ def test_weather_shape():
     w = Weather.shape(raw)
     assert w["temperature"] == 64 and w["icon"] == "cloud-sun"
     assert w["days"][1] == {"date": "2026-11-19", "high": 70, "low": 52, "precip": 80, "label": "Rain", "icon": "rain"}
+
+
+def test_from_google_keeps_event_color():
+    item = {"id": "c", "summary": "Gym", "start": {"date": "2026-11-18"}, "end": {"date": "2026-11-19"}}
+    assert from_google(item, PEOPLE)["color_id"] == ""
+    assert from_google(item | {"colorId": "5"}, PEOPLE)["color_id"] == "5"
+
+
+def test_to_google_sends_color():
+    base = {"summary": "Gym", "start": "2026-11-18", "end": "2026-11-19", "all_day": True}
+    assert "colorId" not in to_google(base, "America/Chicago")
+    assert to_google(base | {"color_id": "11"}, "America/Chicago")["colorId"] == "11"
+    assert to_google(base | {"color_id": ""}, "America/Chicago")["colorId"] is None  # clears on patch

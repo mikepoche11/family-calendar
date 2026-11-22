@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS events (
     all_day     INTEGER NOT NULL DEFAULT 0,
     person_id   INTEGER REFERENCES people(id) ON DELETE SET NULL,
     recurring   INTEGER NOT NULL DEFAULT 0,
-    updated     TEXT NOT NULL DEFAULT ''
+    updated     TEXT NOT NULL DEFAULT '',
+    color_id    TEXT NOT NULL DEFAULT ''   -- Google Calendar event colour "1".."11"; '' = calendar default
 );
 CREATE INDEX IF NOT EXISTS events_start ON events(start);
 
@@ -91,6 +92,10 @@ class Database:
             cols = {r[1] for r in conn.execute("PRAGMA table_info(people)")}
             if "avatar" not in cols:
                 conn.execute("ALTER TABLE people ADD COLUMN avatar TEXT NOT NULL DEFAULT ''")
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(events)")}
+            if "color_id" not in cols:
+                # Filled in by the next sync, which also tells the screens to redraw
+                conn.execute("ALTER TABLE events ADD COLUMN color_id TEXT NOT NULL DEFAULT ''")
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -178,19 +183,19 @@ class Database:
         """
         with self.connect() as conn:
             before = conn.execute(
-                "SELECT id, summary, description, location, start, end, all_day, person_id, updated "
+                "SELECT id, summary, description, location, start, end, all_day, person_id, updated, color_id "
                 "FROM events WHERE end > ? AND start < ? ORDER BY id",
                 (window_start, window_end),
             ).fetchall()
             conn.execute("DELETE FROM events WHERE end > ? AND start < ?", (window_start, window_end))
             conn.executemany(
                 "INSERT OR REPLACE INTO events(id, summary, description, location, start, end, all_day, "
-                "person_id, recurring, updated) VALUES(:id, :summary, :description, :location, :start, :end, "
-                ":all_day, :person_id, :recurring, :updated)",
+                "person_id, recurring, updated, color_id) VALUES(:id, :summary, :description, :location, :start, "
+                ":end, :all_day, :person_id, :recurring, :updated, :color_id)",
                 events,
             )
             after = conn.execute(
-                "SELECT id, summary, description, location, start, end, all_day, person_id, updated "
+                "SELECT id, summary, description, location, start, end, all_day, person_id, updated, color_id "
                 "FROM events WHERE end > ? AND start < ? ORDER BY id",
                 (window_start, window_end),
             ).fetchall()
@@ -200,8 +205,8 @@ class Database:
         with self.connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO events(id, summary, description, location, start, end, all_day, "
-                "person_id, recurring, updated) VALUES(:id, :summary, :description, :location, :start, :end, "
-                ":all_day, :person_id, :recurring, :updated)",
+                "person_id, recurring, updated, color_id) VALUES(:id, :summary, :description, :location, :start, "
+                ":end, :all_day, :person_id, :recurring, :updated, :color_id)",
                 event,
             )
 
