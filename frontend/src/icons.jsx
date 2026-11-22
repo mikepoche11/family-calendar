@@ -6,6 +6,9 @@
  * those emoji to a drawn icon; an emoji with no drawing is shown as plain text.
  */
 
+import { useId } from 'react'
+import { HOLIDAY_ART, HOLIDAY_NAMES } from './holidayArt.js'
+
 const INK = '#475569'
 const C = {
   pink: '#fbcfe8', rose: '#fecdd3', coral: '#fca5a5', peach: '#fed7aa', orange: '#fdba74', butter: '#fde68a',
@@ -581,14 +584,57 @@ export const PICKER = [
   'burger', 'salad',
 ].map((name) => ({ name, emoji: EMOJI_FOR[name] }))
 
+/** Holiday icon groups (holidayArt.js ids start with these). Every group can be picked any time, whatever the theme. */
+export const HOLIDAY_GROUPS = [
+  ['xmas', 'Christmas'], ['mardi', 'Mardi Gras'], ['valentine', "Valentine's"], ['easter', 'Easter'],
+  ['summer', 'Summer'], ['july4', 'July 4th'], ['halloween', 'Halloween'], ['school', 'Back to school'],
+  ['thanks', 'Thanksgiving'],
+].map(([prefix, label]) => ({
+  label,
+  items: Object.keys(HOLIDAY_ART)
+    .filter((id) => id.startsWith(prefix + '-'))
+    .map((id) => ({ name: id, label: HOLIDAY_NAMES[id] })),
+}))
+
+/** Picker sections: the everyday icons first, then one section per holiday. Holiday icons save as their id. */
+export const PICKER_GROUPS = [
+  { label: 'Everyday', items: PICKER.map((p) => ({ ...p, label: p.name })) },
+  ...HOLIDAY_GROUPS.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, emoji: i.name })) })),
+]
+
+export const isHoliday = (name) => Boolean(name && HOLIDAY_ART[name])
+
+/** One holiday drawing as SVG children (120x120 box). Each use gets its own clip-path id. */
+export function HolidayArt({ id }) {
+  const uid = 'h' + useId().replace(/[^a-zA-Z0-9]/g, '')
+  const art = HOLIDAY_ART[id]
+  if (!art) return null
+  return <g dangerouslySetInnerHTML={{ __html: art.replaceAll('__CLIP__', uid) }} />
+}
+
 export function iconFor(value) {
   if (!value) return null
-  if (ICONS[value]) return value
+  if (ICONS[value] || HOLIDAY_ART[value]) return value
   return EMOJI[value.replace(/️/g, '').trim()] ?? null
 }
 
 /** A drawn icon. Sized in em by default, so it follows the font size of whatever it sits in. */
 export function Icon({ name, size = '1.2em', className = '', title }) {
+  if (HOLIDAY_ART[name]) {
+    return (
+      <svg
+        className={`ic holiday ${className}`}
+        width={size}
+        height={size}
+        viewBox="0 0 120 120"
+        role={title ? 'img' : undefined}
+        aria-label={title}
+        aria-hidden={title ? undefined : true}
+      >
+        <HolidayArt id={name} />
+      </svg>
+    )
+  }
   const draw = ICONS[name]
   if (!draw) return null
   return (

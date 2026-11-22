@@ -166,7 +166,7 @@ DAYS = r"^[0-6]{1,7}$"
 
 class ChoreIn(BaseModel):
     title: str = Field(min_length=1, max_length=80)
-    icon: str = Field(default="", max_length=16)
+    icon: str = Field(default="", max_length=32)
     person_id: int | None = None  # None = anyone
     days: str = Field(default="0123456", pattern=DAYS)  # Monday = 0
     marbles: int = Field(default=0, ge=0, le=20)  # blue marbles earned when done
@@ -174,7 +174,7 @@ class ChoreIn(BaseModel):
 
 class ChorePatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=80)
-    icon: str | None = Field(default=None, max_length=16)
+    icon: str | None = Field(default=None, max_length=32)
     person_id: int | None = None
     anyone: bool = False  # set to make the chore "anyone" (person_id null)
     days: str | None = Field(default=None, pattern=DAYS)
@@ -205,19 +205,19 @@ class SpendIn(BaseModel):
 
 class RewardIn(BaseModel):
     title: str = Field(min_length=1, max_length=40)
-    icon: str = Field(default="", max_length=16)
+    icon: str = Field(default="", max_length=32)
     cost: int = Field(ge=1, le=100)
 
 
 class RewardPatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=40)
-    icon: str | None = Field(default=None, max_length=16)
+    icon: str | None = Field(default=None, max_length=32)
     cost: int | None = Field(default=None, ge=1, le=100)
 
 
 class MealIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    icon: str = Field(default="", max_length=16)
+    icon: str = Field(default="", max_length=32)
     ingredients: list[str] = Field(default_factory=list, max_length=40)
     url: str = Field(default="", max_length=500)
     image: str = Field(default="", max_length=500)
@@ -225,7 +225,7 @@ class MealIn(BaseModel):
 
 class MealPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
-    icon: str | None = Field(default=None, max_length=16)
+    icon: str | None = Field(default=None, max_length=32)
     ingredients: list[str] | None = Field(default=None, max_length=40)
     url: str | None = Field(default=None, max_length=500)
     image: str | None = Field(default=None, max_length=500)
@@ -264,7 +264,24 @@ def config(request: Request):
         "mode": "demo" if s.google is None else "google",
         "screensaver_minutes": s.settings.screensaver_minutes,
         "slide_seconds": s.settings.slide_seconds,
+        "theme": s.db.get_meta("theme") or "",
     }
+
+
+THEME = r"^[a-z0-9-]{0,32}$"  # id of a theme in frontend/src/themes.js; "" = the everyday pastel look
+
+
+class ThemeIn(BaseModel):
+    theme: str = Field(pattern=THEME)
+
+
+@app.put("/api/theme")
+def set_theme(body: ThemeIn, request: Request):
+    """Whole-app colour theme, shared by the wall screen and every phone."""
+    s = st(request)
+    s.db.set_meta("theme", body.theme)
+    s.broadcaster.publish("theme")
+    return {"theme": body.theme}
 
 
 @app.post("/api/sync")

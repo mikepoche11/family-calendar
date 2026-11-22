@@ -3,6 +3,8 @@
  * Each is drawn in a 100x100 box. Add one by adding an entry to AVATARS.
  */
 
+import { HolidayArt, HOLIDAY_GROUPS, isHoliday } from './icons.jsx'
+
 const INK = '#1f2937'
 const CHEEK = '#fda4af'
 
@@ -231,8 +233,19 @@ const BY_ID = Object.fromEntries(AVATARS.map((a) => [a.id, a]))
 
 /** A person's avatar: the chosen animal on a ring of their colour, or their initial if none chosen. */
 export default function Avatar({ person, size = 40 }) {
+  const holiday = isHoliday(person?.avatar)
   const art = BY_ID[person?.avatar]
   const color = person?.color ?? '#cbd5e1'
+  if (holiday) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100" className="avatar" aria-hidden="true">
+        <circle cx="50" cy="50" r="48" fill="#ffffff" stroke={color} strokeWidth="4" />
+        <g transform="translate(50 50) scale(0.74) translate(-60 -64)">
+          <HolidayArt id={person.avatar} />
+        </g>
+      </svg>
+    )
+  }
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" className="avatar" aria-hidden="true">
       <circle cx="50" cy="50" r="48" fill={art ? '#ffffff' : color} stroke={color} strokeWidth="4" />
@@ -247,7 +260,20 @@ export default function Avatar({ person, size = 40 }) {
   )
 }
 
+/** Avatar choices in Settings: the animals, then each holiday set (holiday icons work as avatars any time). */
+export const AVATAR_GROUPS = [
+  { label: 'Animals', items: AVATARS.map((a) => ({ id: a.id, name: a.name })) },
+  ...HOLIDAY_GROUPS.map((g) => ({ label: g.label, items: g.items.map((i) => ({ id: i.name, name: i.label })) })),
+]
+
 export function AvatarArt({ id, size = 64 }) {
+  if (isHoliday(id)) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 120 120" aria-hidden="true">
+        <HolidayArt id={id} />
+      </svg>
+    )
+  }
   const art = BY_ID[id]
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">

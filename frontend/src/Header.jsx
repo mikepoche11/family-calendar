@@ -10,7 +10,7 @@ function useNow(intervalMs = 15000) {
   return now
 }
 
-export default function Header({ weather, children }) {
+export default function Header({ weather, themeIcons = [], children }) {
   const now = useNow()
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   const date = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
@@ -18,7 +18,14 @@ export default function Header({ weather, children }) {
     <header className="header">
       <div className="clock">
         <div className="time">{time}</div>
-        <div className="date">{date}</div>
+        <div className="date">
+          {date}
+          {themeIcons.length > 0 && (
+            <span className="theme-badges">
+              {themeIcons.map((i) => <Icon key={i} name={i} size="1.3em" />)}
+            </span>
+          )}
+        </div>
       </div>
       {children}
       {weather && (

@@ -17,6 +17,7 @@ async function request(method, path, body) {
 
 export const api = {
   config: () => request('GET', '/api/config'),
+  setTheme: (theme) => request('PUT', '/api/theme', { theme }),
   health: () => request('GET', '/api/health'),
   people: () => request('GET', '/api/people'),
   createPerson: (body) => request('POST', '/api/people', body),
