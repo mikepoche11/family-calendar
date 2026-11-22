@@ -25,6 +25,7 @@ from .marbles import MarbleError, Marbles
 from .mealdb import IdeasError, MealIdeas
 from .meals import Meals, week_start
 from .photos import Photos, PhotosError
+from .routines import Routines
 from .shownight import ShowNight
 from .weather import Weather
 
@@ -67,6 +68,7 @@ class State:
         self.marbles = Marbles(self.db)
         self.chores = Chores(self.db, self.marbles)
         self.show_night = ShowNight(self.db)
+        self.routines = Routines(self.db, self.marbles)
         self.meals = Meals(self.db)
         self.ideas = MealIdeas()
         self.photos = Photos(
@@ -193,6 +195,45 @@ class ChorePatch(BaseModel):
 class ChoreDone(BaseModel):
     done: bool
     person_id: int | None = None  # who did an "anyone" chore
+
+
+class RoutineStepIn(BaseModel):
+    kind: str = Field(pattern=r"^(morning|bedtime)$")
+    person_id: int
+    title: str = Field(min_length=1, max_length=80)
+    icon: str = Field(default="", max_length=32)
+    days: str = Field(default="0123456", pattern=DAYS)
+    marbles: int = Field(default=0, ge=0, le=20)
+
+
+class RoutineStepPatch(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=80)
+    icon: str | None = Field(default=None, max_length=32)
+    days: str | None = Field(default=None, pattern=DAYS)
+    marbles: int | None = Field(default=None, ge=0, le=20)
+    move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
+
+
+class RoutineDone(BaseModel):
+    done: bool
+
+
+class RoutineTimes(BaseModel):
+    start: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    bonus: int | None = Field(default=None, ge=0, le=20)
+
+
+class RoutineSettingsIn(BaseModel):
+    morning: RoutineTimes | None = None
+    bedtime: RoutineTimes | None = None
+    auto_show: bool | None = None
+
+
+class RoutineCopy(BaseModel):
+    kind: str = Field(pattern=r"^(morning|bedtime)$")
+    from_person_id: int
+    to_person_id: int
 
 
 class StarterIn(BaseModel):
@@ -665,6 +706,104 @@ def chores_starter(body: StarterIn, request: Request):
         _check_person(s, pid)
     n = s.chores.add_starter(body.kid_ids)
     s.broadcaster.publish("chores")
+    return {"added": n}
+
+
+# --- routines -----------------------------------------------------------------------
+def _routine_error(fn):
+    try:
+        return fn()
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@app.get("/api/routines")
+def routines_list(request: Request):
+    s = st(request)
+    return {"settings": s.routines.settings(), "steps": s.routines.list()}
+
+
+@app.get("/api/routines/today")
+def routines_today(request: Request):
+    s = st(request)
+    today = _today(s)
+    return {"date": today.isoformat(), "settings": s.routines.settings(), **s.routines.for_day(today)}
+
+
+@app.put("/api/routines/settings")
+def routines_settings(body: RoutineSettingsIn, request: Request):
+    s = st(request)
+    out = _routine_error(lambda: s.routines.set_settings(body.model_dump(exclude_none=True)))
+    s.broadcaster.publish("routines")
+    return out
+
+
+@app.post("/api/routines/steps", status_code=201)
+def routines_create(body: RoutineStepIn, request: Request):
+    s = st(request)
+    _check_person(s, body.person_id)
+    step = _routine_error(
+        lambda: s.routines.create(body.kind, body.person_id, body.title.strip(), body.icon.strip(), body.days, body.marbles)
+    )
+    s.broadcaster.publish("routines")
+    return step
+
+
+@app.patch("/api/routines/steps/{sid}")
+def routines_update(sid: int, body: RoutineStepPatch, request: Request):
+    s = st(request)
+    fields = body.model_dump(exclude_unset=True, exclude={"move"})
+    if "title" in fields:
+        fields["title"] = fields["title"].strip()
+    step = _routine_error(lambda: s.routines.update(sid, fields))
+    if not step:
+        raise HTTPException(404, "No such step")
+    if body.move:
+        s.routines.move(sid, body.move)
+    s.broadcaster.publish("routines")
+    return step
+
+
+@app.delete("/api/routines/steps/{sid}", status_code=204)
+def routines_delete(sid: int, request: Request):
+    s = st(request)
+    if not s.routines.delete(sid):
+        raise HTTPException(404, "No such step")
+    s.broadcaster.publish("routines")
+
+
+@app.post("/api/routines/steps/{sid}/done")
+def routines_done(sid: int, body: RoutineDone, request: Request):
+    s = st(request)
+    result = s.routines.set_done(sid, _today(s), body.done)
+    if result is None:
+        raise HTTPException(404, "No such step")
+    s.broadcaster.publish("routines")
+    if result["marbles"]:
+        s.broadcaster.publish("marbles")
+    jars = {j["person_id"]: j for j in s.marbles.jars()}
+    for change in result["marbles"]:
+        change["jar"] = jars.get(change["person_id"])
+    return {"ok": True, **result}
+
+
+@app.post("/api/routines/copy", status_code=201)
+def routines_copy(body: RoutineCopy, request: Request):
+    s = st(request)
+    _check_person(s, body.from_person_id)
+    _check_person(s, body.to_person_id)
+    n = s.routines.copy(body.from_person_id, body.to_person_id, body.kind)
+    s.broadcaster.publish("routines")
+    return {"added": n}
+
+
+@app.post("/api/routines/starter", status_code=201)
+def routines_starter(body: StarterIn, request: Request):
+    s = st(request)
+    for pid in body.kid_ids:
+        _check_person(s, pid)
+    n = s.routines.add_starter(body.kid_ids)
+    s.broadcaster.publish("routines")
     return {"added": n}
 
 
