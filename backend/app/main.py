@@ -25,6 +25,7 @@ from .marbles import MarbleError, Marbles
 from .mealdb import IdeasError, MealIdeas
 from .meals import Meals, week_start
 from .photos import Photos, PhotosError
+from .shownight import ShowNight
 from .weather import Weather
 
 log = logging.getLogger("family-calendar")
@@ -65,6 +66,7 @@ class State:
         self.broadcaster = Broadcaster()
         self.marbles = Marbles(self.db)
         self.chores = Chores(self.db, self.marbles)
+        self.show_night = ShowNight(self.db)
         self.meals = Meals(self.db)
         self.ideas = MealIdeas()
         self.photos = Photos(
@@ -204,6 +206,10 @@ class JarsIn(BaseModel):
 class MarbleAdd(BaseModel):
     color: str = Field(pattern=r"^(blue|white)$")
     count: int = Field(default=1, ge=1, le=20)
+
+
+class ShowNightIn(BaseModel):
+    person_ids: list[int] = Field(max_length=20)
 
 
 class SpendIn(BaseModel):
@@ -677,7 +683,33 @@ def _marbles(s: State, fn):
 @app.get("/api/marbles")
 def marbles_list(request: Request):
     s = st(request)
-    return {"jars": s.marbles.jars(), "rewards": s.marbles.rewards()}
+    return {"jars": s.marbles.jars(), "rewards": s.marbles.rewards(), "show_night": s.show_night.get(_today(s))}
+
+
+@app.get("/api/show-night")
+def show_night_get(request: Request):
+    """Which kid picks the TV show tonight (turns change at midnight local time)."""
+    s = st(request)
+    return s.show_night.get(_today(s))
+
+
+@app.put("/api/show-night")
+def show_night_set(body: ShowNightIn, request: Request):
+    s = st(request)
+    for pid in body.person_ids:
+        _check_person(s, pid)
+    out = s.show_night.set_order(body.person_ids, _today(s))
+    s.broadcaster.publish("marbles")
+    return out
+
+
+@app.post("/api/show-night/swap")
+def show_night_swap(request: Request):
+    """Skip: tonight goes to the next kid, and the turns carry on from them."""
+    s = st(request)
+    out = s.show_night.swap(_today(s))
+    s.broadcaster.publish("marbles")
+    return out
 
 
 @app.put("/api/marbles/jars")

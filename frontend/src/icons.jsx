@@ -7,7 +7,7 @@
  */
 
 import { useId } from 'react'
-import { HOLIDAY_ART, HOLIDAY_NAMES } from './holidayArt.js'
+import { HOLIDAY_ART, HOLIDAY_NAMES, TV_ART } from './holidayArt.js'
 
 const INK = '#475569'
 const C = {
@@ -165,6 +165,9 @@ export const ICONS = {
       <path d="M33 27 h12 a6 6 0 0 1 -12 0 Z" fill={C.mint} />
       <circle cx="24" cy="9" r="3" fill={C.butter} />
     </>
+  ),
+  swap: () => (
+    <path d="M12 17 H34 M28 11 L34 17 L28 23 M36 31 H14 M20 25 L14 31 L20 37" fill="none" strokeWidth="3.2" />
   ),
   undo: () => (
     <path d="M17 13 L10 20 L17 27 M10 20 H30 a8.5 8.5 0 0 1 0 17 H21" fill="none" strokeWidth="3.2" />
@@ -610,6 +613,17 @@ export function HolidayArt({ id }) {
   const art = HOLIDAY_ART[id]
   if (!art) return null
   return <g dangerouslySetInnerHTML={{ __html: art.replaceAll('__CLIP__', uid) }} />
+}
+
+/** The show night TV drawn for a theme (theme id from themes.js; "" = Everyday). */
+export function TvIcon({ theme = '', size = 64 }) {
+  const uid = 't' + useId().replace(/[^a-zA-Z0-9]/g, '')
+  const art = TV_ART[theme || 'everyday'] ?? TV_ART.everyday
+  return (
+    <svg className="ic holiday tv" width={size} height={size} viewBox="0 0 120 120" aria-hidden="true">
+      <g dangerouslySetInnerHTML={{ __html: art.replaceAll('__CLIP__', uid) }} />
+    </svg>
+  )
 }
 
 export function iconFor(value) {

@@ -39,6 +39,8 @@ export const api = {
   setChoreDone: (id, body) => request('POST', `/api/chores/${id}/done`, body),
   addStarterChores: (kid_ids) => request('POST', '/api/chores/starter', { kid_ids }),
   marbles: () => request('GET', '/api/marbles'),
+  setShowNight: (person_ids) => request('PUT', '/api/show-night', { person_ids }),
+  swapShowNight: () => request('POST', '/api/show-night/swap'),
   setJars: (person_ids) => request('PUT', '/api/marbles/jars', { person_ids }),
   removeJar: (pid) => request('DELETE', `/api/marbles/${pid}`),
   addMarbles: (pid, color, count = 1) => request('POST', `/api/marbles/${pid}/add`, { color, count }),

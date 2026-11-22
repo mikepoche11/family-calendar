@@ -14,6 +14,8 @@ colours events by family member, and shows weather.
 
 ![Meal plan](docs/meal-plan.png)
 
+![Show night](docs/show-night.png)
+
 ## What works now (phase 1)
 
 - Two-way sync with one Google calendar through a service account (pull every 5 minutes, writes go straight to Google)
@@ -23,7 +25,7 @@ colours events by family member, and shows weather.
 - Shared grocery list: add from the wall or any phone, tap to check off, clear checked; duplicates are ignored
 - Meal plan: a dinner card for each night of the week with the meal's ingredients, a box of the family's saved meals (starter set included), "Fill empty nights", free dinner ideas and search from TheMealDB, and one tap to send a night's or the whole week's ingredients to the grocery list (skips what's already on it). See [docs/meal-planning.md](docs/meal-planning.md)
 - Chores: today's chores in a column per kid plus an "Anyone" column, big tap-to-check tiles, progress bars, a starter set, and an editor for who/which days. Checkmarks clear at midnight. A chore can be worth blue marbles that drop into the kid's jar when it's checked off ([how it works](docs/chore-marbles.md))
-- Marble jars: a glass jar per kid. Blue marbles are earned and spent on rewards (big ice cream 5, small ice cream 3, Coke/Sprite/Dr Pepper 3); white marbles stay until you press Cancel out, which removes whites and blues in pairs with an animation. Undo last fixes a mis-tap, and rewards are editable
+- Marble jars: a glass jar per kid. Blue marbles are earned and spent on rewards (big ice cream 5, small ice cream 3, Coke/Sprite/Dr Pepper 3); white marbles stay until you press Cancel out, which removes whites and blues in pairs with an animation. Undo last fixes a mis-tap, and rewards are editable. A small "Show night" card says whose turn it is to pick the TV show tonight; turns swap at midnight, with a Swap button for skipped nights ([how it works](docs/show-night.md))
 - Photo screensaver after 10 idle minutes, with photos chosen through the Google Photos Picker (QR code to pick on your phone) or copied into `data/photos/`
 - Calendar stickers: drop any of the app's icons on a day, then drag, resize, turn or remove it with a finger or the mouse. Saved in the app only, never added to Google Calendar ([how to use them](docs/calendar-stickers.md))
 - Add, edit and delete events on the screen; picking a person adds the `Name:` prefix

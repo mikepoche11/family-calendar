@@ -277,7 +277,7 @@ export default function App() {
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
       {section === 'meals' && <Meals version={mealsVersion} />}
-      {section === 'marbles' && <Marbles people={people} version={marblesVersion} />}
+      {section === 'marbles' && <Marbles people={people} version={marblesVersion} theme={config.theme ?? ''} />}
 
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
       <div className="toolbar">
