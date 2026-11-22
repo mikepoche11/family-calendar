@@ -186,3 +186,31 @@ def test_chore_marbles_api(client):
     assert r["marbles"][0]["count"] == 2 and r["marbles"][0]["jar"]["blue"] == 2
     r = client.post(f"/api/chores/{chore['id']}/done", json={"done": False}).json()
     assert r["marbles"][0]["count"] == -2 and r["marbles"][0]["jar"]["blue"] == 0
+
+
+def test_theme_saved_and_shared(client):
+    assert client.get("/api/config").json()["theme"] == ""
+    assert client.put("/api/theme", json={"theme": "halloween"}).json() == {"theme": "halloween"}
+    assert client.get("/api/config").json()["theme"] == "halloween"
+    assert client.put("/api/theme", json={"theme": "Bad Theme!"}).status_code == 422
+    assert client.put("/api/theme", json={"theme": ""}).status_code == 200
+    assert client.get("/api/config").json()["theme"] == ""
+
+
+def test_holiday_icon_and_avatar_ids_fit(client):
+    mike = client.get("/api/people").json()[0]
+    r = client.patch(f"/api/people/{mike['id']}", json={"avatar": "halloween-candy-corn"})
+    assert r.status_code == 200 and r.json()["avatar"] == "halloween-candy-corn"
+    r = client.post("/api/chores", json={"title": "Carve pumpkin", "icon": "halloween-pumpkin"})
+    assert r.status_code in (200, 201) and r.json()["icon"] == "halloween-pumpkin"
+
+
+def test_theme_background_custom_and_reset(client):
+    assert client.get("/api/config").json()["theme_backgrounds"] == {}
+    r = client.put("/api/theme/background", json={"theme": "christmas", "color": "#2F6B45"})
+    assert r.json()["theme_backgrounds"] == {"christmas": "#2f6b45"}
+    client.put("/api/theme/background", json={"theme": "", "color": "#ffeedd"})
+    assert client.get("/api/config").json()["theme_backgrounds"] == {"christmas": "#2f6b45", "": "#ffeedd"}
+    assert client.put("/api/theme/background", json={"theme": "christmas", "color": "green"}).status_code == 422
+    client.put("/api/theme/background", json={"theme": "christmas", "color": ""})
+    assert client.get("/api/config").json()["theme_backgrounds"] == {"": "#ffeedd"}

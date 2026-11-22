@@ -16,6 +16,7 @@ import Chores from './Chores.jsx'
 import Marbles from './Marbles.jsx'
 import Meals from './Meals.jsx'
 import { Icon } from './icons.jsx'
+import { applyTheme, themeById } from './themes.js'
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
@@ -68,7 +69,8 @@ export default function App() {
     loadWeather()
     loadHealth()
     loadPhotos()
-    api.config().then(setConfig).catch(() => {})
+    const loadConfig = () => api.config().then(setConfig).catch(() => {})
+    loadConfig()
     if (window.location.search) window.history.replaceState(null, '', '/')
     const w = setInterval(loadWeather, 15 * 60 * 1000)
     const h = setInterval(loadHealth, 60 * 1000)
@@ -78,6 +80,7 @@ export default function App() {
         setChoresVersion((v) => v + 1)
         setMarblesVersion((v) => v + 1)
       }
+      if (kind === 'theme') return loadConfig()
       if (kind === 'photos') return loadPhotos()
       if (kind === 'grocery') return setGroceryVersion((v) => v + 1)
       if (kind === 'chores') return setChoresVersion((v) => v + 1)
@@ -91,6 +94,32 @@ export default function App() {
       unsubscribe()
     }
   }, [loadPeople, loadWeather, loadHealth, loadPhotos, refetch])
+
+  const themeBg = config.theme_backgrounds?.[config.theme ?? ''] ?? ''
+  useEffect(() => applyTheme(config.theme ?? '', themeBg), [config.theme, themeBg])
+
+  async function chooseBackground(theme, color) {
+    setConfig((c) => {
+      const next = { ...(c.theme_backgrounds ?? {}) }
+      if (color) next[theme] = color
+      else delete next[theme]
+      return { ...c, theme_backgrounds: next }
+    })
+    try {
+      await api.setThemeBackground(theme, color)
+    } catch {
+      api.config().then(setConfig).catch(() => {})
+    }
+  }
+
+  async function chooseTheme(theme) {
+    setConfig((c) => ({ ...c, theme }))
+    try {
+      await api.setTheme(theme)
+    } catch {
+      api.config().then(setConfig).catch(() => {})
+    }
+  }
 
   // Photo screensaver after SCREENSAVER_MINUTES untouched (only when there are photos and no dialog is open)
   useEffect(() => {
@@ -202,7 +231,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header weather={weather}>
+      <Header weather={weather} themeIcons={themeById(config.theme).icons}>
         <nav className="sections">
           <button className={section === 'calendar' ? 'on' : ''} onClick={() => setSection('calendar')}>
             <Icon name="calendar" /> Calendar
@@ -311,6 +340,10 @@ export default function App() {
           people={people}
           initialTab={showSettings}
           onChanged={loadPeople}
+          theme={config.theme ?? ''}
+          onTheme={chooseTheme}
+          backgrounds={config.theme_backgrounds ?? {}}
+          onBackground={chooseBackground}
           onClose={() => {
             setShowSettings(false)
             loadPhotos()
