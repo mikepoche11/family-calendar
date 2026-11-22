@@ -79,6 +79,16 @@ button.danger { color: var(--danger); border-color: var(--danger); }
 .chip.on { background: var(--chip, var(--accent)); color: var(--ink); border-color: var(--chip, var(--accent)); }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding-left: 8px; }
 .chip .avatar { flex: none; }
+
+/* Google Calendar colour picker in the event form */
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.swatch {
+  width: 44px; height: 44px; min-height: 0; min-width: 0; padding: 0; border-radius: 50%;
+  background: var(--swatch); border: 3px solid transparent; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.swatch.on { background: var(--swatch); border-color: var(--panel); box-shadow: 0 0 0 3px var(--ink); }
+.swatch.default, .swatch.default.on { background: repeating-linear-gradient(45deg, #e2e8f0 0 6px, #f8fafc 6px 12px); }
+.swatch-name { font-weight: 600; color: var(--muted); margin-left: 4px; }
 .sync-error, .demo { font-size: 18px; margin-left: auto; }
 .sync-error { color: var(--danger); }
 .demo { color: var(--muted); }

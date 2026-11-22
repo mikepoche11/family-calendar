@@ -82,6 +82,27 @@ def test_create_update_delete_event(client):
     assert client.delete(f"/api/events/{ev['id']}").status_code == 404
 
 
+def test_event_color(client):
+    r = client.post(
+        "/api/events",
+        json={"summary": "Gym", "start": "2026-12-01T16:00", "end": "2026-12-01T17:00", "color_id": "11"},
+    )
+    assert r.status_code == 201 and r.json()["color_id"] == "11"
+    ev = r.json()
+    r = client.patch(
+        f"/api/events/{ev['id']}",
+        json={"summary": "Gym", "start": "2026-12-01T16:00", "end": "2026-12-01T17:00", "color_id": ""},
+    )
+    assert r.json()["color_id"] == ""
+    bad = {"summary": "x", "start": "2026-12-01T16:00", "end": "2026-12-01T17:00", "color_id": "12"}
+    assert client.post("/api/events", json=bad).status_code == 422
+
+
+def test_demo_events_have_google_colors(client):
+    rows = client.get("/api/events", params={"start": "2000-01-01T00:00:00Z", "end": "2100-01-01T00:00:00Z"}).json()
+    assert rows and all(r["color_id"] for r in rows)
+
+
 def test_event_must_end_after_start(client):
     r = client.post("/api/events", json={"summary": "x", "start": "2026-12-01T17:00", "end": "2026-12-01T16:00"})
     assert r.status_code == 422
@@ -117,6 +138,24 @@ def test_old_database_gets_avatar_column(tmp_path):
     conn.commit()
     conn.close()
     assert Database(path).list_people()[0]["avatar"] == ""
+
+
+def test_old_database_gets_event_color_column(tmp_path):
+    import sqlite3
+
+    from app.db import Database
+
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute(
+        "CREATE TABLE events (id TEXT PRIMARY KEY, summary TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', "
+        "location TEXT NOT NULL DEFAULT '', start TEXT NOT NULL, end TEXT NOT NULL, all_day INTEGER NOT NULL DEFAULT 0, "
+        "person_id INTEGER, recurring INTEGER NOT NULL DEFAULT 0, updated TEXT NOT NULL DEFAULT '')"
+    )
+    conn.execute("INSERT INTO events(id, summary, start, end) VALUES('e1', 'Gym', '2026-12-01', '2026-12-02')")
+    conn.commit()
+    conn.close()
+    assert Database(path).get_event("e1")["color_id"] == ""
 
 
 def test_grocery_list(client):

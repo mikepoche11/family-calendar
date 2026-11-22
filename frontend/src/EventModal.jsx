@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Avatar from './avatars.jsx'
+import { GOOGLE_COLORS, GOOGLE_COLOR_ORDER } from './googleColors.js'
 
 const pad = (n) => String(n).padStart(2, '0')
 const localDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -25,6 +26,7 @@ export function draftFrom({ event, start, end, allDay }) {
       startTime: event.all_day ? '09:00' : localTime(s),
       endTime: event.all_day ? '10:00' : localTime(e),
       location: event.location || '',
+      color_id: event.color_id || '',
       recurring: event.recurring,
     }
   }
@@ -40,6 +42,7 @@ export function draftFrom({ event, start, end, allDay }) {
     startTime: allDay ? '09:00' : localTime(s),
     endTime: allDay ? '10:00' : localTime(e),
     location: '',
+    color_id: '',
     recurring: false,
   }
 }
@@ -64,6 +67,7 @@ export default function EventModal({ draft, people, onSave, onDelete, onClose })
       person_id: f.person_id,
       all_day: f.all_day,
       location: f.location,
+      color_id: f.color_id,
       // Timed events are sent as exact UTC instants, so a phone in another time zone still saves the right time
       start: f.all_day ? f.date : new Date(`${f.date}T${f.startTime}`).toISOString(),
       end: f.all_day ? addDays(f.endDate < f.date ? f.date : f.endDate, 1) : new Date(`${f.date}T${f.endTime}`).toISOString(),
@@ -150,6 +154,32 @@ export default function EventModal({ draft, people, onSave, onDelete, onClose })
               </label>
             </>
           )}
+        </div>
+
+        <div className="field-label">Color</div>
+        <div className="swatches" role="radiogroup" aria-label="Google Calendar color">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!f.color_id}
+            className={`swatch default ${!f.color_id ? 'on' : ''}`}
+            title="Calendar default"
+            onClick={() => setF({ ...f, color_id: '' })}
+          />
+          {GOOGLE_COLOR_ORDER.map((id) => (
+            <button
+              type="button"
+              role="radio"
+              key={id}
+              aria-checked={f.color_id === id}
+              aria-label={GOOGLE_COLORS[id].name}
+              title={GOOGLE_COLORS[id].name}
+              className={`swatch ${f.color_id === id ? 'on' : ''}`}
+              style={{ '--swatch': GOOGLE_COLORS[id].bg }}
+              onClick={() => setF({ ...f, color_id: id })}
+            />
+          ))}
+          <span className="swatch-name">{f.color_id ? GOOGLE_COLORS[f.color_id].name : 'Calendar default'}</span>
         </div>
 
         <label>

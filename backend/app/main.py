@@ -243,6 +243,7 @@ class EventIn(BaseModel):
     person_id: int | None = None
     description: str = ""
     location: str = ""
+    color_id: str = Field(default="", pattern=r"^([1-9]|1[01])?$")  # Google event colour; "" = calendar default
 
 
 # --- health/config -------------------------------------------------------------
@@ -407,6 +408,7 @@ def _local_row(event_id: str, body: EventIn, summary: str, people: list[dict], t
         "person_id": match_person(summary, people),
         "recurring": 0,
         "updated": datetime.now(timezone.utc).isoformat(),
+        "color_id": body.color_id,
     }
 
 
