@@ -8,6 +8,7 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -157,8 +158,14 @@ class GroceryPatch(BaseModel):
     done: bool | None = None
 
 
+class GroceryLine(BaseModel):
+    text: str = Field(max_length=200)
+    days: list[Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")]] = Field(default_factory=list, max_length=14)  # dinner nights it's for
+
+
 class GroceryBulk(BaseModel):
-    items: list[str] = Field(max_length=100)
+    # Plain strings are hand-picked lines; GroceryLine ties a line to dinner nights so clearing them removes it
+    items: list[str | GroceryLine] = Field(max_length=100)
 
 
 DAYS = r"^[0-6]{1,7}$"
@@ -506,7 +513,8 @@ def grocery_clear_checked(request: Request):
 def grocery_bulk(body: GroceryBulk, request: Request):
     """Add several lines at once (a meal's ingredients); skips things already on the list."""
     s = st(request)
-    result = s.db.add_grocery_lines([t for t in body.items if t.strip()])
+    lines = [t if isinstance(t, str) else (t.text, t.days) for t in body.items]
+    result = s.db.add_grocery_lines([t for t in lines if (t if isinstance(t, str) else t[0]).strip()])
     if result["added"]:
         s.broadcaster.publish("grocery")
     return result
@@ -806,6 +814,7 @@ def meals_delete(mid: int, request: Request):
     if not s.meals.delete(mid):
         raise HTTPException(404, "No such meal")
     s.broadcaster.publish("meals")
+    s.broadcaster.publish("grocery")
 
 
 @app.post("/api/meals/starter", status_code=201)
@@ -838,10 +847,13 @@ def meal_plan(request: Request, start: str = ""):
 @app.put("/api/meal-plan/{day}")
 def meal_plan_set(day: str, body: PlanDay, request: Request):
     s = st(request)
-    if not s.meals.set_day(_parse_day(day), body.meal_id):
+    removed = s.meals.set_day(_parse_day(day), body.meal_id)
+    if removed is None:
         raise HTTPException(404, "No such meal")
     s.broadcaster.publish("meals")
-    return {"ok": True}
+    if removed:
+        s.broadcaster.publish("grocery")
+    return {"ok": True, "removed": removed}
 
 
 @app.post("/api/meal-plan/fill")

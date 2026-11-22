@@ -46,6 +46,17 @@ Either way, you get a checklist first:
 
 Tap **Add N items** and they appear on the 🛒 Grocery list right away, on the wall and on every phone.
 
+### Clearing or swapping a dinner takes its groceries off
+
+The list remembers which night each ingredient was added for. When you **Clear this night**, or swap the night to a different meal, the items that dinner added come off the grocery list, and a note says how many. Checked-off items for that dinner go too.
+
+Some things stay on the list:
+
+- **Items you typed in yourself.** Those are never removed, even if a dinner uses the same thing.
+- **Items another night still needs.** If Tuesday's tacos and Friday's gumbo both added onions, clearing Tuesday leaves the onions for Friday. This also works when an item showed as "already on the list" for the second dinner.
+
+Deleting a meal from **📖 Our meals** clears it from its nights, so its groceries come off the same way. Editing a meal's ingredients doesn't change items already on the list.
+
 ## Your meals: editing and adding
 
 **📖 Our meals** at the top shows every saved meal. Tap one to edit it:

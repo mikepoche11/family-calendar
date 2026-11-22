@@ -26,7 +26,7 @@ export default function Meals({ version }) {
   const [picking, setPicking] = useState(null) // day being planned
   const [editing, setEditing] = useState(null) // meal object, or {} for a new one
   const [showBox, setShowBox] = useState(false)
-  const [shopping, setShopping] = useState(null) // [{line, from}]
+  const [shopping, setShopping] = useState(null) // [{line, from, day}]
   const [toast, setToast] = useState(null)
   const [error, setError] = useState(null)
 
@@ -62,7 +62,7 @@ export default function Meals({ version }) {
   function shopFor(days) {
     const lines = []
     for (const d of days) {
-      for (const line of d.meal?.ingredients ?? []) lines.push({ line, from: d.meal.name })
+      for (const line of d.meal?.ingredients ?? []) lines.push({ line, from: d.meal.name, day: d.date })
     }
     setShopping(lines)
   }
@@ -156,8 +156,9 @@ export default function Meals({ version }) {
           meals={meals}
           onPick={(meal) =>
             act(async () => {
-              await api.setMealPlan(picking, meal ? meal.id : null)
+              const r = await api.setMealPlan(picking, meal ? meal.id : null)
               setPicking(null)
+              if (r.removed) setToast(`Took ${r.removed} item${r.removed === 1 ? '' : 's'} off the grocery list`)
             })
           }
           onSaveIdea={(idea) =>
@@ -465,10 +466,12 @@ function ShopPicker({ lines, onAdd, onClose }) {
   // Merge repeats across meals ("Onion" in two dinners shows once)
   const merged = useMemo(() => {
     const byKey = new Map()
-    for (const { line, from } of lines) {
+    for (const { line, from, day } of lines) {
       const k = itemKey(line)
-      if (byKey.has(k)) byKey.get(k).from.add(from)
-      else byKey.set(k, { line, key: k, from: new Set([from]) })
+      if (byKey.has(k)) {
+        byKey.get(k).from.add(from)
+        byKey.get(k).days.add(day)
+      } else byKey.set(k, { line, key: k, from: new Set([from]), days: new Set([day]) })
     }
     return [...byKey.values()]
   }, [lines])
@@ -513,7 +516,14 @@ function ShopPicker({ lines, onAdd, onClose }) {
           <button
             className="primary"
             disabled={!picked.size}
-            onClick={() => onAdd(merged.filter((m) => picked.has(m.key)).map((m) => m.line))}
+            onClick={() =>
+              // Lines already on the list go too, so the server knows these nights need them as well
+              onAdd(
+                merged
+                  .filter((m) => picked.has(m.key) || onList?.has(m.key))
+                  .map((m) => ({ text: m.line, days: [...m.days] })),
+              )
+            }
           >
             Add {picked.size} item{picked.size === 1 ? '' : 's'}
           </button>

@@ -39,6 +39,14 @@ CREATE TABLE IF NOT EXISTS grocery (
     done_at    TEXT
 );
 
+-- Which planned dinner nights put a grocery item on the list. Items with no row here were added by hand.
+CREATE TABLE IF NOT EXISTS grocery_meal (
+    grocery_id INTEGER NOT NULL REFERENCES grocery(id) ON DELETE CASCADE,
+    day        TEXT NOT NULL,            -- local YYYY-MM-DD of the meal_plan night
+    PRIMARY KEY (grocery_id, day)
+);
+CREATE INDEX IF NOT EXISTS grocery_meal_day ON grocery_meal(day);
+
 -- Decorations stuck on the calendar. Only stored here, never sent to Google Calendar.
 CREATE TABLE IF NOT EXISTS stickers (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -258,26 +266,60 @@ class Database:
             row = conn.execute("SELECT id, text, done, created_at, done_at FROM grocery WHERE id = ?", (gid,)).fetchone()
         return dict(row) | {"done": bool(row["done"])}
 
-    def add_grocery_lines(self, lines: list[str]) -> dict:
+    def add_grocery_lines(self, lines: list[str | tuple[str, list[str]]]) -> dict:
         """Add many lines; skip any whose item is already on the open list.
 
         "Onion (2)" counts as already there when "onion" or "Onion (1)" is unchecked on the list.
+        A line can be (text, days): the planned dinner nights (YYYY-MM-DD) it is for. Those items are
+        remembered so clearing the night takes them off again. A skipped line joins the item already
+        on the list only when that item also came from a dinner; hand-added items stay hand-added.
         """
         added, skipped = [], []
         with self.connect() as conn:
-            have = {_item_key(r["text"]) for r in conn.execute("SELECT text FROM grocery WHERE done = 0")}
+            have = {}  # item key -> (grocery id, came from a dinner)
+            for r in conn.execute(
+                "SELECT id, text, EXISTS(SELECT 1 FROM grocery_meal m WHERE m.grocery_id = g.id) AS planned "
+                "FROM grocery g WHERE done = 0 ORDER BY id"
+            ):
+                have.setdefault(_item_key(r["text"]), (r["id"], bool(r["planned"])))
             for line in lines:
-                text = " ".join(line.split())[:120]
+                raw, days = (line, []) if isinstance(line, str) else line
+                text = " ".join(raw.split())[:120]
                 if not text:
                     continue
                 key = _item_key(text)
                 if key in have:
                     skipped.append(text)
-                    continue
-                have.add(key)
-                conn.execute("INSERT INTO grocery(text) VALUES(?)", (text,))
-                added.append(text)
+                    gid, planned = have[key]
+                    if not planned:
+                        continue
+                else:
+                    gid = conn.execute("INSERT INTO grocery(text) VALUES(?)", (text,)).lastrowid
+                    have[key] = (gid, bool(days))
+                    added.append(text)
+                conn.executemany(
+                    "INSERT OR IGNORE INTO grocery_meal(grocery_id, day) VALUES(?, ?)", [(gid, d) for d in days]
+                )
         return {"added": added, "skipped": skipped}
+
+    def forget_dinner_groceries(self, days: list[str]) -> int:
+        """A dinner left these nights: drop their links and delete items no other night still needs.
+
+        Checked-off items go too. Hand-added items are never touched. Returns how many items were deleted.
+        """
+        if not days:
+            return 0
+        marks = ",".join("?" * len(days))
+        with self.connect() as conn:
+            ids = [r[0] for r in conn.execute(
+                f"SELECT DISTINCT grocery_id FROM grocery_meal WHERE day IN ({marks})", days
+            )]
+            conn.execute(f"DELETE FROM grocery_meal WHERE day IN ({marks})", days)
+            n = 0
+            for gid in ids:
+                if not conn.execute("SELECT 1 FROM grocery_meal WHERE grocery_id = ?", (gid,)).fetchone():
+                    n += conn.execute("DELETE FROM grocery WHERE id = ?", (gid,)).rowcount
+        return n
 
     def update_grocery(self, gid: int, text: str | None = None, done: bool | None = None) -> dict | None:
         with self.connect() as conn:

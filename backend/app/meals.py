@@ -116,8 +116,13 @@ class Meals:
         return self.get(mid)
 
     def delete(self, mid: int) -> bool:
+        """Delete a meal, clear it from every night, and take those nights' groceries off the list."""
         with self.db.connect() as conn:
-            return conn.execute("DELETE FROM meals WHERE id = ?", (mid,)).rowcount > 0
+            days = [r["day"] for r in conn.execute("SELECT day FROM meal_plan WHERE meal_id = ?", (mid,))]
+            gone = conn.execute("DELETE FROM meals WHERE id = ?", (mid,)).rowcount > 0
+        if gone:
+            self.db.forget_dinner_groceries(days)
+        return gone
 
     def add_starter(self) -> int:
         before = len(self.list())
@@ -138,19 +143,29 @@ class Meals:
         by_day = {r["day"]: _row({k: r[k] for k in r.keys() if k != "day"}) for r in rows}
         return [{"date": d.isoformat(), "meal": by_day.get(d.isoformat())} for d in days]
 
-    def set_day(self, day: date, meal_id: int | None) -> bool:
+    def set_day(self, day: date, meal_id: int | None) -> int | None:
+        """Plan (or with None, clear) a night. Returns None for an unknown meal.
+
+        Otherwise returns how many grocery items were taken off the list because the night's old
+        dinner had put them there (see Database.forget_dinner_groceries). Re-picking the same meal
+        changes nothing.
+        """
+        iso = day.isoformat()
         with self.db.connect() as conn:
+            if meal_id is not None and not conn.execute("SELECT 1 FROM meals WHERE id = ?", (meal_id,)).fetchone():
+                return None
+            old = conn.execute("SELECT meal_id FROM meal_plan WHERE day = ?", (iso,)).fetchone()
+            if old and old["meal_id"] == meal_id:
+                return 0
             if meal_id is None:
-                conn.execute("DELETE FROM meal_plan WHERE day = ?", (day.isoformat(),))
-                return True
-            if not conn.execute("SELECT 1 FROM meals WHERE id = ?", (meal_id,)).fetchone():
-                return False
-            conn.execute(
-                "INSERT INTO meal_plan(day, meal_id) VALUES(?, ?) "
-                "ON CONFLICT(day) DO UPDATE SET meal_id = excluded.meal_id",
-                (day.isoformat(), meal_id),
-            )
-        return True
+                conn.execute("DELETE FROM meal_plan WHERE day = ?", (iso,))
+            else:
+                conn.execute(
+                    "INSERT INTO meal_plan(day, meal_id) VALUES(?, ?) "
+                    "ON CONFLICT(day) DO UPDATE SET meal_id = excluded.meal_id",
+                    (iso, meal_id),
+                )
+        return self.db.forget_dinner_groceries([iso]) if old else 0
 
     def fill_week(self, start: date, rng: random.Random | None = None) -> int:
         """Put a different saved meal on each empty night, avoiding meals already planned that week.
