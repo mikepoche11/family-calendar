@@ -1,30 +1,43 @@
-# Screen layout: side rail and week view
+# Screen layout: side rail, week view and event details
 
-![Wall screen with the side rail](side-rail.png)
+![Week view with the side rail](agenda-week.png)
 
-## What changed
+## Side rail and top line
 
-- **Page buttons moved to a rail on the left.** Calendar, Grocery, Meals, Chores, Routines, Marbles and Countdowns are stacked down the left edge, each with its icon and a small label. Settings sits at the bottom of the rail (it used to be next to Stickers).
-- **Slimmer top line.** The clock and date share one line on the left, and the weather sits on the right. With the page buttons gone from the top, the weather no longer gets pushed off the edge.
-- **Week and day views always show 6 AM to 9 PM** with no scrolling. The rows stretch to fill whatever height the screen has.
-- **Bigger event text.** Event titles are bold and larger. Half-hour events put the time and title on one line.
+- **Page buttons are in a rail on the left.** Calendar, Grocery, Meals, Chores, Routines, Marbles and Countdowns are stacked down the left edge, each with its icon and a small label. Settings sits at the bottom of the rail.
+- **Slim top line.** The clock and date on the left, the current weather on the right. Each day's forecast lives at the bottom of its column in the Week view instead.
 
-## How it adapts to different screens
+## Week view: a column per day
 
-The browser decides the layout from the window size in pixels, so the same app looks right on the wall screen, a laptop and a phone:
+- Each day is a column: the day and date at the top (today's date is circled), a small count of that day's events, then the events as cards in time order. All-day events come first. Each card shows the title, the time and the person's initial, and is only as tall as its text, so there are no empty hours.
+- **Card size follows the week.** When no day has more than 3 events the cards are big; up to 5 they're medium; busier weeks get standard cards.
+- **Busy days.** A day with 8 or more events switches to one-line cards (start time and title). If it still doesn't fit, only that day's column scrolls, and its bottom edge fades out so you can tell there's more. The other days stay put.
+- **Day footers.** The bottom of each column shows that night's dinner from the Meals page and that day's weather (icon, high and low). The forecast reaches 5 days ahead, so past days and days further out show dinner only.
+- Events that last several days (like a visit or a school break) show on each day they cover.
+- Tap empty space in a column (or "+ Add" on an empty day) to add an event that day. Stickers work here too.
 
-| Window width | Weather shows |
+![A busy Wednesday with one-line cards](agenda-busy.png)
+
+## Tap an event to see it first
+
+![Event details with Close and Edit buttons](event-view.png)
+
+Tapping an event (in any view) opens its details: the date and time, who it's for, where, any notes from Google Calendar, and whether it repeats. Nothing changes until you tap **Edit**, which opens the same form as before. Close, or tapping outside, goes back to the calendar.
+
+## Day view
+
+The Day view keeps the hourly layout and always shows 6 AM to 9 PM without scrolling, with bigger, bold event text. Events after 9 PM show in Week, Month and Schedule; to run the Day view later, change `slotMaxTime` in `frontend/src/App.jsx`.
+
+## Different screens
+
+The browser picks the layout from the window size, so the same app works on the wall screen, a laptop and a phone:
+
+| Window width | What changes |
 |---|---|
-| Wider than 1500 px (a 1080p wall screen) | Today plus 4 days |
-| 1200 to 1500 px (most laptops) | Today plus 2 days |
-| 700 to 1200 px | Just the temperature |
-| 700 px or narrower (phones) | The phone layout: tabs along the bottom, as before |
+| Wider than 1200 px | Full layout, weather shows temperature and conditions |
+| 700 to 1200 px | Weather shows just the temperature |
+| 700 px or narrower (phones) | The phone layout: tabs along the bottom. Phones open on the Schedule list and don't have the Week columns. |
 
-If the window is shorter than 900 px (a laptop with browser toolbars), the hour labels get smaller so 6 AM to 9 PM still fits. On a full 1080p screen it has plenty of room.
+If text looks too big or small on a particular screen, Ctrl + plus / Ctrl + minus zooms the page and the layout adjusts. Ctrl + 0 resets it. The Pi kiosk runs full screen, so it gets the most room.
 
 ![Laptop size, 1366 x 768](side-rail-laptop.png)
-
-## Things to know
-
-- **Events after 9 PM don't show in the week or day view.** They still show in Month and Schedule. If you'd like the week view to run later (say to 10 PM), it's one setting in `frontend/src/App.jsx` (`slotMaxTime`); each extra hour makes every row a little shorter.
-- **Browser zoom changes the size.** If text looks too big or small on a particular screen, Ctrl + plus / Ctrl + minus zooms the page, and the layout adjusts to match. Ctrl + 0 resets it. The Pi kiosk runs full screen, so it gets the most room.

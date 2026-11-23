@@ -29,7 +29,10 @@ function measureDays(layer, viewType) {
     if (r.width < 1) return
     out[date] = { left: r.left - base.left, top: r.top - base.top, w: r.width, h: bottom - r.top }
   }
-  if (viewType.startsWith('timeGrid')) {
+  const agenda = layer.parentElement?.querySelectorAll('.agenda-day[data-date]')
+  if (agenda?.length) {
+    agenda.forEach((el) => put(el.dataset.date, el.getBoundingClientRect()))
+  } else if (viewType.startsWith('timeGrid')) {
     // a day is its whole column: from the date heading down to the bottom of the visible hours
     const bottom = fc.querySelector('.fc-view-harness')?.getBoundingClientRect().bottom
     fc.querySelectorAll('.fc-col-header-cell[data-date]').forEach((el) =>
