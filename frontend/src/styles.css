@@ -499,3 +499,50 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 .show-night .swap { flex: none; min-height: 48px; background: var(--panel); padding: 0 14px; font-size: 17px; display: inline-flex; align-items: center; gap: 6px; }
 .show-night.empty { border-style: dashed; font-size: 18px; color: var(--muted); padding-right: 18px; }
 .chip .turn { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); font-size: 14px; font-weight: 700; }
+
+/* countdowns page */
+.sections button:nth-child(6).on { background: #fef08a; border-color: #facc15; }
+.countdowns { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.countdowns .chores-title { display: inline-flex; align-items: center; gap: 10px; }
+.countdowns > .error { color: var(--danger); margin: 0; font-size: 18px; }
+.countdown-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.countdown-card {
+  display: flex; align-items: center; gap: 16px; text-align: left; height: auto; min-height: 150px; padding: 16px 18px;
+  background: color-mix(in srgb, var(--tint) 35%, var(--panel)); border: 2px solid var(--tint); border-radius: 22px;
+  box-shadow: 0 2px 10px rgba(180, 150, 100, 0.08);
+}
+.countdown-card .cd-icon { width: 84px; height: 84px; flex: none; margin: 0; }
+.countdown-card .emoji.cd-icon { font-size: 64px; width: auto; height: auto; }
+.countdown-card .cd-text { display: flex; flex-direction: column; min-width: 0; }
+.countdown-card .cd-num { font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.countdown-card .cd-unit { font-size: 18px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+.countdown-card .cd-name { font-size: 24px; font-weight: 700; line-height: 1.2; margin-top: 4px; overflow-wrap: anywhere; }
+.countdown-card .cd-date { font-size: 16px; color: var(--muted); margin-top: 2px; }
+.countdown-card.big { grid-column: span 2; min-height: 200px; gap: 24px; padding: 20px 28px; }
+.countdown-card.big .cd-icon { width: 130px; height: 130px; }
+.countdown-card.big .cd-num { font-size: 96px; }
+.countdown-card.big .cd-name { font-size: 32px; }
+.countdown-card.today { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.countdown-card.today .cd-icon { animation: cd-bounce 1.6s ease-in-out infinite; }
+.countdown-grid.past .countdown-card { opacity: 0.7; min-height: 110px; }
+.countdown-grid.past .cd-icon { width: 56px; height: 56px; }
+@keyframes cd-bounce { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(-6deg); } }
+.modal .name-row { align-items: center; }
+.modal .name-row .icon-pick { width: 72px; flex: none; padding: 0; font-size: 40px; }
+.modal .name-row input { flex: 1; min-width: 0; }
+.modal select { font: inherit; font-size: 22px; min-height: var(--touch); border: 1px solid var(--line); border-radius: 12px; padding: 0 10px; background: var(--panel); color: var(--ink); }
+.modal input[type='date'] { background: var(--panel); }
+
+/* next countdowns on the calendar screen */
+.countdown-strip { display: flex; gap: 8px; flex: 1; justify-content: center; min-width: 0; }
+.countdown-pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0 16px 0 10px; min-width: 0; font-size: 18px;
+  background: color-mix(in srgb, var(--primary) 45%, var(--panel)); border: 2px solid var(--primary-edge); border-radius: 999px;
+}
+.countdown-pill .ic { margin: 0; flex: none; }
+.countdown-pill .num { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.countdown-pill .what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.countdown-pill.today { background: var(--accent-soft); border-color: var(--accent); }
+.clock .time, .clock .date { white-space: nowrap; }
+@media (max-width: 1500px) { .sections button { padding: 0 16px; } }
+@media (max-width: 1400px) { .countdown-pill + .countdown-pill { display: none; } }

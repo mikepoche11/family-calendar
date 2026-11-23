@@ -15,6 +15,7 @@ import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
 import Marbles from './Marbles.jsx'
 import Meals from './Meals.jsx'
+import Countdowns, { CountdownStrip } from './Countdowns.jsx'
 import { Icon } from './icons.jsx'
 import { GOOGLE_COLORS, textOn } from './googleColors.js'
 import { applyTheme, themeById } from './themes.js'
@@ -57,6 +58,7 @@ export default function App() {
   const [choresVersion, setChoresVersion] = useState(0)
   const [marblesVersion, setMarblesVersion] = useState(0)
   const [mealsVersion, setMealsVersion] = useState(0)
+  const [countdowns, setCountdowns] = useState([])
   const [range, setRange] = useState(null) // visible days, for stickers
   const [stickers, setStickers] = useState([])
   const [stickerPicker, setStickerPicker] = useState(false)
@@ -74,6 +76,7 @@ export default function App() {
   const loadWeather = useCallback(() => api.weather().then(setWeather).catch(() => {}), [])
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
   const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
+  const loadCountdowns = useCallback(() => api.countdowns().then((r) => setCountdowns(r.countdowns)).catch(() => {}), [])
   const rangeRef = useRef(null)
   rangeRef.current = range
   const loadStickers = useCallback(() => {
@@ -87,11 +90,13 @@ export default function App() {
     loadWeather()
     loadHealth()
     loadPhotos()
+    loadCountdowns()
     const loadConfig = () => api.config().then(setConfig).catch(() => {})
     loadConfig()
     if (window.location.search) window.history.replaceState(null, '', '/')
     const w = setInterval(loadWeather, 15 * 60 * 1000)
     const h = setInterval(loadHealth, 60 * 1000)
+    const cd = setInterval(loadCountdowns, 10 * 60 * 1000) // days left tick over at midnight
     const unsubscribe = subscribe((kind) => {
       if (kind === 'people') {
         loadPeople()
@@ -105,14 +110,16 @@ export default function App() {
       if (kind === 'marbles') return setMarblesVersion((v) => v + 1)
       if (kind === 'meals') return setMealsVersion((v) => v + 1)
       if (kind === 'stickers') return loadStickers()
+      if (kind === 'countdowns') return loadCountdowns()
       refetch()
     })
     return () => {
       clearInterval(w)
       clearInterval(h)
+      clearInterval(cd)
       unsubscribe()
     }
-  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadStickers, refetch])
+  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadStickers, loadCountdowns, refetch])
 
   const themeBg = config.theme_backgrounds?.[config.theme ?? ''] ?? ''
   useEffect(() => applyTheme(config.theme ?? '', themeBg), [config.theme, themeBg])
@@ -271,12 +278,16 @@ export default function App() {
           <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
             <Icon name="jar" /> Marbles
           </button>
+          <button className={section === 'countdowns' ? 'on' : ''} onClick={() => setSection('countdowns')}>
+            <Icon name="hourglass" /> {isPhone ? 'Countdown' : 'Countdowns'}
+          </button>
         </nav>
       </Header>
 
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
       {section === 'meals' && <Meals version={mealsVersion} />}
+      {section === 'countdowns' && <Countdowns countdowns={countdowns} reload={loadCountdowns} />}
       {section === 'marbles' && <Marbles people={people} version={marblesVersion} theme={config.theme ?? ''} />}
 
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
@@ -287,6 +298,7 @@ export default function App() {
           <button onClick={() => cal()?.next()} aria-label="Next">›</button>
           <span className="range">{title}</span>
         </div>
+        <CountdownStrip countdowns={countdowns} max={isPhone ? 1 : 2} onOpen={() => setSection('countdowns')} />
         <div className="views">
           {VIEWS.filter((v) => !isPhone || PHONE_VIEWS.has(v.id)).map((v) => (
             <button

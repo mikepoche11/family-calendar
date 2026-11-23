@@ -21,6 +21,7 @@ from .db import Database
 from .demo import demo_events
 from .events import from_google, match_person, titled_for, to_google, to_utc_iso
 from .chores import Chores
+from .countdowns import MOVING as COUNTDOWN_MOVING, REPEATS as COUNTDOWN_REPEATS, Countdowns, next_date
 from .marbles import MarbleError, Marbles
 from .mealdb import IdeasError, MealIdeas
 from .meals import Meals, week_start
@@ -67,6 +68,7 @@ class State:
         self.marbles = Marbles(self.db)
         self.chores = Chores(self.db, self.marbles)
         self.show_night = ShowNight(self.db)
+        self.countdowns = Countdowns(self.db)
         self.meals = Meals(self.db)
         self.ideas = MealIdeas()
         self.photos = Photos(
@@ -584,6 +586,87 @@ def sticker_delete(sid: int, request: Request):
     if not s.db.delete_sticker(sid):
         raise HTTPException(404, "No such sticker")
     s.broadcaster.publish("stickers")
+
+
+# --- countdowns ---------------------------------------------------------------------
+# "12 days until Christmas". Saved in the app only, never sent to Google Calendar.
+REPEAT = "^(" + "|".join(COUNTDOWN_REPEATS) + ")$"
+
+
+class CountdownIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    day: str = Field(pattern=DAY)
+    icon: str = Field(default="", max_length=32)
+    repeat: str = Field(default="", pattern=REPEAT)
+
+
+class CountdownPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    day: str | None = Field(default=None, pattern=DAY)
+    icon: str | None = Field(default=None, max_length=32)
+    repeat: str | None = Field(default=None, pattern=REPEAT)
+
+
+def _countdown_day(day: str, repeat: str, today) -> str:
+    try:
+        d = datetime.strptime(day, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(422, "Not a real date")
+    # Moving holidays work out their own date; keep the next one so it reads right if the rule is changed later
+    return next_date(repeat, d, today).isoformat() if repeat in COUNTDOWN_MOVING else day
+
+
+@app.get("/api/countdowns")
+def countdowns_list(request: Request):
+    s = st(request)
+    today = _today(s)
+    return {"date": today.isoformat(), "countdowns": s.countdowns.list(today)}
+
+
+@app.post("/api/countdowns", status_code=201)
+def countdowns_create(body: CountdownIn, request: Request):
+    s = st(request)
+    today = _today(s)
+    day = _countdown_day(body.day, body.repeat, today)
+    row = s.countdowns.create(body.name.strip(), day, body.icon.strip(), body.repeat, today)
+    s.broadcaster.publish("countdowns")
+    return row
+
+
+@app.post("/api/countdowns/holidays")
+def countdowns_holidays(request: Request):
+    s = st(request)
+    added = s.countdowns.add_holidays(_today(s))
+    if added:
+        s.broadcaster.publish("countdowns")
+    return {"added": added}
+
+
+@app.patch("/api/countdowns/{cid}")
+def countdowns_update(cid: int, body: CountdownPatch, request: Request):
+    s = st(request)
+    today = _today(s)
+    current = s.countdowns.get(cid, today)
+    if not current:
+        raise HTTPException(404, "No such countdown")
+    fields = body.model_dump(exclude_unset=True)
+    if "name" in fields and fields["name"] is not None:
+        fields["name"] = fields["name"].strip()
+    if "icon" in fields and fields["icon"] is not None:
+        fields["icon"] = fields["icon"].strip()
+    repeat = fields.get("repeat") if fields.get("repeat") is not None else current["repeat"]
+    fields["day"] = _countdown_day(fields.get("day") or current["day"], repeat, today)
+    row = s.countdowns.update(cid, fields, today)
+    s.broadcaster.publish("countdowns")
+    return row
+
+
+@app.delete("/api/countdowns/{cid}", status_code=204)
+def countdowns_delete(cid: int, request: Request):
+    s = st(request)
+    if not s.countdowns.delete(cid):
+        raise HTTPException(404, "No such countdown")
+    s.broadcaster.publish("countdowns")
 
 
 # --- chores -------------------------------------------------------------------------
