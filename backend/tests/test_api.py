@@ -100,7 +100,7 @@ def test_event_color(client):
 
 def test_demo_events_have_google_colors(client):
     rows = client.get("/api/events", params={"start": "2000-01-01T00:00:00Z", "end": "2100-01-01T00:00:00Z"}).json()
-    assert rows and all(r["color_id"] for r in rows)
+    assert rows and all(r["color_id"] or r["label_id"] for r in rows)
 
 
 def test_event_must_end_after_start(client):
@@ -264,3 +264,24 @@ def test_show_night_api(client):
     assert client.post("/api/show-night/swap").json()["tonight"] == people["Mike"]
     assert client.get("/api/show-night").json()["tonight"] == people["Mike"]
     assert client.put("/api/show-night", json={"person_ids": [999]}).status_code == 422
+
+
+def test_event_labels_get_colours(client):
+    import app.main
+
+    s = app.main.app.state.s
+    rows = client.get("/api/events", params={"start": "2000-01-01", "end": "2100-01-01"}).json()
+    church = next(e for e in rows if e["summary"] == "Church")
+    assert church["label_id"] == "demo-church" and church["color_id"] == ""
+    # The sync gave labels a first colour from words in their titles
+    assert church["label_color"] == "#7986cb"
+    labels = {l["label_id"]: l for l in client.get("/api/event-labels").json()}
+    assert labels["demo-trash"]["examples"] == ["TRASH!!!"] and labels["demo-trash"]["color"] == "#a1887f"
+    # Pick a colour, then clear it; a cleared colour stays cleared after the next sync
+    client.put("/api/event-labels/demo-pool", json={"color": "#123456"})
+    assert client.get("/api/event-labels").json()[[l["label_id"] for l in client.get("/api/event-labels").json()].index("demo-pool")]["color"] == "#123456"
+    client.put("/api/event-labels/demo-pool", json={"color": None})
+    s.labels.apply_hints()
+    labels = {l["label_id"]: l for l in client.get("/api/event-labels").json()}
+    assert labels["demo-pool"]["color"] == ""
+    assert client.put("/api/event-labels/x", json={"color": "red"}).status_code == 422

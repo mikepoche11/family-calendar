@@ -20,6 +20,10 @@ SAMPLES = [
     (6, "10:00", 120, "Ava: Birthday party at the park", "6"),
     (9, "08:00", 480, "Mike: Work trip", "1"),
     (14, None, 0, "No school", "10"),
+    # Events with a Google event label instead of a colour (their colour is set in Settings)
+    (0, "20:00", 30, "Church", "label:demo-church"),
+    (2, "06:00", 60, "Larry Pool", "label:demo-pool"),
+    (4, "20:00", 15, "TRASH!!!", "label:demo-trash"),
 ]
 
 
@@ -46,6 +50,7 @@ def demo_events(people: list[dict], tz: str) -> list[dict]:
             "person_id": match_person(title, people),
             "recurring": 0,
             "updated": "",
-            "color_id": color_id,
+            "color_id": "" if color_id.startswith("label:") else color_id,
+            "label_id": color_id[6:] if color_id.startswith("label:") else "",
         })
     return rows

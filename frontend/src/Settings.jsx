@@ -4,6 +4,7 @@ import Avatar, { AVATAR_GROUPS, AvatarArt } from './avatars.jsx'
 import { Icon } from './icons.jsx'
 import { THEMES, backgroundShades, defaultBackground, lightness, themeById } from './themes.js'
 import PhotosPanel from './PhotosPanel.jsx'
+import EventLabels from './EventLabels.jsx'
 
 /** Pastel family colours (coral, peach, butter yellow, lime, mint, aqua, sky, blue, lilac, orchid, pink, grey). */
 export const COLORS = [
@@ -54,12 +55,14 @@ export default function Settings({ people, onChanged, onClose, initialTab = 'fam
           <div className="tabs">
             <button className={tab === 'family' ? 'on' : ''} onClick={() => setTab('family')}>Family</button>
             <button className={tab === 'themes' ? 'on' : ''} onClick={() => setTab('themes')}>Themes</button>
+            <button className={tab === 'labels' ? 'on' : ''} onClick={() => setTab('labels')}>Event colors</button>
             <button className={tab === 'photos' ? 'on' : ''} onClick={() => setTab('photos')}>Photos</button>
           </div>
           <button onClick={onClose} className="primary">Done</button>
         </div>
 
         {tab === 'photos' && <PhotosPanel onPreview={onPreview} />}
+        {tab === 'labels' && <EventLabels />}
 
         {tab === 'themes' && (
           <div className="editor">

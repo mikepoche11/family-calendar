@@ -18,6 +18,20 @@ export const GOOGLE_COLORS = {
   11: { name: 'Tomato', bg: '#d50000' },
 }
 
+/**
+ * Colours offered for Google event labels: Google Calendar's wider palette (the 11 above plus the
+ * calendar-only shades), so a label can be matched to what the Google app shows.
+ */
+export const LABEL_PALETTE = [
+  ['Tomato', '#d50000'], ['Radicchio', '#ad1457'], ['Cherry blossom', '#d81b60'], ['Flamingo', '#e67c73'],
+  ['Raspberry', '#d16d8f'], ['Tangerine', '#f4511e'], ['Pumpkin', '#ef6c00'], ['Mango', '#f09300'],
+  ['Banana', '#f6bf26'], ['Citron', '#c0ca33'], ['Avocado', '#7cb342'], ['Pistachio', '#9e9d24'],
+  ['Sage', '#33b679'], ['Basil', '#0b8043'], ['Eucalyptus', '#26a69a'], ['Peacock', '#039be5'],
+  ['Cobalt', '#4285f4'], ['Blueberry', '#3f51b5'], ['Lavender', '#7986cb'], ['Wisteria', '#b39ddb'],
+  ['Amethyst', '#9e69af'], ['Grape', '#8e24aa'], ['Birch', '#a79b8e'], ['Cocoa', '#a1887f'],
+  ['Graphite', '#616161'],
+]
+
 /** Order Google's own colour picker uses. */
 export const GOOGLE_COLOR_ORDER = ['11', '4', '6', '5', '2', '10', '7', '9', '1', '3', '8']
 

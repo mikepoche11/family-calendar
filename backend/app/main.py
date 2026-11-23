@@ -22,6 +22,7 @@ from .demo import demo_events
 from .events import from_google, match_person, titled_for, to_google, to_utc_iso
 from .chores import Chores
 from .countdowns import MOVING as COUNTDOWN_MOVING, REPEATS as COUNTDOWN_REPEATS, Countdowns, next_date
+from .labels import EventLabels
 from .marbles import MarbleError, Marbles
 from .mealdb import IdeasError, MealIdeas
 from .meals import Meals, week_start
@@ -70,6 +71,7 @@ class State:
         self.chores = Chores(self.db, self.marbles)
         self.show_night = ShowNight(self.db)
         self.routines = Routines(self.db, self.marbles)
+        self.labels = EventLabels(self.db)
         self.countdowns = Countdowns(self.db)
         self.meals = Meals(self.db)
         self.ideas = MealIdeas()
@@ -104,6 +106,8 @@ class State:
             changed = self.db.replace_window(w_start, w_end, rows)
         self.last_sync = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         self.last_error = None
+        if self.labels.apply_hints():
+            changed = True
         if changed:
             log.info("calendar changed: %d events in window", len(rows))
             self.broadcaster.publish("events")
@@ -418,7 +422,27 @@ def delete_person(pid: int, request: Request):
 # --- events --------------------------------------------------------------------
 @app.get("/api/events")
 def list_events(request: Request, start: str = Query(...), end: str = Query(...)):
-    return st(request).db.list_events(start, end)
+    s = st(request)
+    colors = s.labels.colors()
+    return [e | {"label_color": colors.get(e.get("label_id") or "", "")} for e in s.db.list_events(start, end)]
+
+
+class LabelColorIn(BaseModel):
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")  # None = no colour
+
+
+@app.get("/api/event-labels")
+def event_labels(request: Request):
+    """Google event labels on the synced events, with example titles and the colour picked for each."""
+    return st(request).labels.list()
+
+
+@app.put("/api/event-labels/{label_id}")
+def event_label_color(label_id: str, body: LabelColorIn, request: Request):
+    s = st(request)
+    s.labels.set_color(label_id, body.color)
+    s.broadcaster.publish("events")
+    return s.labels.list()
 
 
 def _local_to_utc(value: str, tz: str) -> str:
@@ -465,6 +489,7 @@ def _local_row(event_id: str, body: EventIn, summary: str, people: list[dict], t
         "recurring": 0,
         "updated": datetime.now(timezone.utc).isoformat(),
         "color_id": body.color_id,
+        "label_id": "",
     }
 
 
