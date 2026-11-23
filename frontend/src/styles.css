@@ -500,8 +500,49 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 .show-night.empty { border-style: dashed; font-size: 18px; color: var(--muted); padding-right: 18px; }
 .chip .turn { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); font-size: 14px; font-weight: 700; }
 
+/* morning and bedtime routines (Routines.jsx); columns and tiles come from the chores styles */
+.sections button:nth-child(5).on { background: #a5f3fc; border-color: #67e8f9; }
+.sections button:nth-child(6).on { background: #ddd6fe; border-color: #c4b5fd; }
+.routines-head { gap: 12px; flex-wrap: wrap; }
+.routine-title { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.routine-title > .ic { width: 1.4em; height: 1.4em; }
+.routine-when { font-size: 18px; font-weight: 600; padding: 4px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); }
+.routine-when.on { background: var(--primary, #fde68a); border-color: var(--primary-edge, #f3c94f); color: var(--ink); }
+.routine-switch { display: inline-flex; margin-left: auto; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+.routine-editor > * { flex-shrink: 0; }
+.routine-editor .routine-switch { margin-left: 0; align-self: flex-start; }
+.routine-switch button { border: none; border-radius: 0; font-size: 19px; font-weight: 600; padding: 0 18px; background: none; }
+.routine-switch button.on { background: var(--accent-soft); color: var(--ink); }
+.routines.bedtime .routine-switch button.on { background: #ddd6fe; }
+.routines.morning .routine-switch button.on { background: #fde68a; }
+.routine-bonus { align-self: flex-start; font-size: 18px; padding: 6px 14px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.routine-step { min-height: 80px; }
+.routine-step .icon { font-size: 38px; }
+.routine-step .step-num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--chip) 25%, white); }
+.routine-col.finished { box-shadow: 0 0 0 3px var(--chip), 0 2px 10px rgba(180, 150, 100, 0.08); }
+.all-done .bonus-got { color: #1d4ed8; }
+.earned-extra { margin: -6px 0 0; font-size: 20px; font-weight: 600; color: var(--ink); text-align: center; }
+.routine-cheer { align-items: center; text-align: center; border-top: 8px solid var(--chip); width: min(560px, 92vw); }
+.routine-times { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.routine-times label { flex: 0 0 180px; }
+.routine-bonus-edit { display: flex; flex-direction: column; gap: 6px; margin-left: auto; }
+.modal .check-row { flex-direction: row; align-items: center; gap: 10px; font-size: 18px; color: var(--ink); }
+.modal .check-row input { width: 26px; height: 26px; min-height: 0; padding: 0; }
+.routine-editor .chore-row .move { display: flex; flex-direction: column; gap: 2px; }
+.routine-editor .chore-row .move button { min-height: 24px; height: 24px; min-width: 40px; padding: 0; font-size: 13px; line-height: 1; }
+.routine-editor .actions select { font: inherit; font-size: 18px; min-height: var(--touch); border: 1px solid var(--line); border-radius: 12px; padding: 0 10px; background: var(--panel); color: var(--ink); }
+.routine-editor .empty { padding: 16px 0; font-size: 18px; }
+@media (max-width: 700px) {
+  .routines-head .chores-title { font-size: 20px; }
+  .routine-when { font-size: 14px; }
+  .routine-switch { margin-left: 0; }
+  .routine-switch button { font-size: 16px; padding: 0 12px; }
+  .routine-step .icon { font-size: 30px; }
+  .routine-times label { flex: 1 1 120px; }
+}
+
 /* countdowns page */
-.sections button:nth-child(6).on { background: #fef08a; border-color: #facc15; }
+.sections button:nth-child(7).on { background: #fef08a; border-color: #facc15; }
 .countdowns { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .countdowns .chores-title { display: inline-flex; align-items: center; gap: 10px; }
 .countdowns > .error { color: var(--danger); margin: 0; font-size: 18px; }
@@ -544,5 +585,5 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 .countdown-pill .what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
 .countdown-pill.today { background: var(--accent-soft); border-color: var(--accent); }
 .clock .time, .clock .date { white-space: nowrap; }
-@media (max-width: 1500px) { .sections button { padding: 0 16px; } }
+@media (max-width: 1800px) { .sections button { padding: 0 12px; font-size: 20px; } .sections button .ic { margin-right: 0.2em; } }
 @media (max-width: 1400px) { .countdown-pill + .countdown-pill { display: none; } }

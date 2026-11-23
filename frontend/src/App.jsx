@@ -15,6 +15,8 @@ import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
 import Marbles from './Marbles.jsx'
 import Meals from './Meals.jsx'
+import Routines from './Routines.jsx'
+import { ROUTINE, activeKind } from './routineTime.js'
 import Countdowns, { CountdownStrip } from './Countdowns.jsx'
 import { Icon } from './icons.jsx'
 import { GOOGLE_COLORS, textOn } from './googleColors.js'
@@ -58,6 +60,9 @@ export default function App() {
   const [choresVersion, setChoresVersion] = useState(0)
   const [marblesVersion, setMarblesVersion] = useState(0)
   const [mealsVersion, setMealsVersion] = useState(0)
+  const [routinesVersion, setRoutinesVersion] = useState(0)
+  const [routineSettings, setRoutineSettings] = useState(null)
+  const [clock, setClock] = useState(() => new Date())
   const [countdowns, setCountdowns] = useState([])
   const [range, setRange] = useState(null) // visible days, for stickers
   const [stickers, setStickers] = useState([])
@@ -76,6 +81,7 @@ export default function App() {
   const loadWeather = useCallback(() => api.weather().then(setWeather).catch(() => {}), [])
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
   const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
+  const loadRoutineSettings = useCallback(() => api.routines().then((r) => setRoutineSettings(r.settings)).catch(() => {}), [])
   const loadCountdowns = useCallback(() => api.countdowns().then((r) => setCountdowns(r.countdowns)).catch(() => {}), [])
   const rangeRef = useRef(null)
   rangeRef.current = range
@@ -90,6 +96,7 @@ export default function App() {
     loadWeather()
     loadHealth()
     loadPhotos()
+    loadRoutineSettings()
     loadCountdowns()
     const loadConfig = () => api.config().then(setConfig).catch(() => {})
     loadConfig()
@@ -107,6 +114,10 @@ export default function App() {
       if (kind === 'photos') return loadPhotos()
       if (kind === 'grocery') return setGroceryVersion((v) => v + 1)
       if (kind === 'chores') return setChoresVersion((v) => v + 1)
+      if (kind === 'routines') {
+        loadRoutineSettings()
+        return setRoutinesVersion((v) => v + 1)
+      }
       if (kind === 'marbles') return setMarblesVersion((v) => v + 1)
       if (kind === 'meals') return setMealsVersion((v) => v + 1)
       if (kind === 'stickers') return loadStickers()
@@ -119,7 +130,30 @@ export default function App() {
       clearInterval(cd)
       unsubscribe()
     }
-  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadStickers, loadCountdowns, refetch])
+  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadRoutineSettings, loadStickers, loadCountdowns, refetch])
+
+  // Morning / bedtime routine that's on right now (the wall switches to it when nobody is using the screen)
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 30 * 1000)
+    return () => clearInterval(t)
+  }, [])
+  const routineNow = activeKind(routineSettings, clock)
+  const routineAuto = !isPhone && Boolean(routineSettings?.auto_show && routineNow)
+  const homeSection = routineAuto ? 'routines' : 'calendar'
+  const homeRef = useRef(homeSection)
+  homeRef.current = homeSection
+  const lastTouch = useRef(Date.now())
+  useEffect(() => {
+    const touch = () => (lastTouch.current = Date.now())
+    window.addEventListener('pointerdown', touch)
+    return () => window.removeEventListener('pointerdown', touch)
+  }, [])
+  // When a routine starts or ends while the screen sits idle, move to (or away from) it
+  useEffect(() => {
+    if (isPhone || draft || showSettings || Date.now() - lastTouch.current < IDLE_RESET_MS) return
+    if (homeSection === 'routines') setScreensaver(false)
+    setSection(homeSection)
+  }, [homeSection])
 
   const themeBg = config.theme_backgrounds?.[config.theme ?? ''] ?? ''
   useEffect(() => applyTheme(config.theme ?? '', themeBg), [config.theme, themeBg])
@@ -149,7 +183,8 @@ export default function App() {
 
   // Photo screensaver after SCREENSAVER_MINUTES untouched (only when there are photos and no dialog is open)
   useEffect(() => {
-    if (isPhone || !photos.length || draft || showSettings || screensaver) return
+    // No photo slideshow while a routine is up on the wall
+    if (isPhone || !photos.length || draft || showSettings || screensaver || routineAuto) return
     let timer
     const reset = () => {
       clearTimeout(timer)
@@ -161,7 +196,7 @@ export default function App() {
       clearTimeout(timer)
       window.removeEventListener('pointerdown', reset)
     }
-  }, [isPhone, photos.length, draft, showSettings, screensaver, config.screensaver_minutes])
+  }, [isPhone, photos.length, draft, showSettings, screensaver, routineAuto, config.screensaver_minutes])
 
   // People colours and the filter are applied when events are fetched
   useEffect(() => {
@@ -179,7 +214,7 @@ export default function App() {
         setShowSettings(false)
         setStickerPicker(false)
         setPlacing(null)
-        setSection('calendar')
+        setSection(homeRef.current)
         const cal = calRef.current?.getApi()
         if (cal) {
           cal.changeView(DEFAULT_VIEW)
@@ -275,6 +310,9 @@ export default function App() {
           <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
             <Icon name="chores" /> Chores
           </button>
+          <button className={section === 'routines' ? 'on' : ''} onClick={() => setSection('routines')}>
+            <Icon name={ROUTINE[routineNow ?? 'morning'].icon} /> Routines
+          </button>
           <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
             <Icon name="jar" /> Marbles
           </button>
@@ -287,6 +325,7 @@ export default function App() {
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
       {section === 'meals' && <Meals version={mealsVersion} />}
+      {section === 'routines' && <Routines people={people} version={routinesVersion} />}
       {section === 'countdowns' && <Countdowns countdowns={countdowns} reload={loadCountdowns} />}
       {section === 'marbles' && <Marbles people={people} version={marblesVersion} theme={config.theme ?? ''} />}
 

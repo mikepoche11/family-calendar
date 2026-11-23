@@ -571,6 +571,93 @@ export const ICONS = {
       <rect x="12" y="27" width="24" height="5" rx="2.2" fill={C.orange} />
     </>
   ),
+
+  /* ---------- routines ---------- */
+  shoes: () => (
+    <>
+      <path d="M5 33 V22 a3 3 0 0 1 3 -3 h7 c1 4 4 6 8 6 h4 c7 0 13 3 15 8 v2 H5 Z" fill={C.coral} />
+      <rect x="4" y="33" width="40" height="6.5" rx="3" fill={C.white} />
+      <path d="M17 22 l3 -3 M21 24 l3 -3" {...thin} />
+    </>
+  ),
+  backpack: () => (
+    <>
+      <path d="M18 9 a6 6 0 0 1 12 0" fill="none" />
+      <rect x="9" y="11" width="30" height="31" rx="9" fill={C.lilac} />
+      <path d="M9 22 h30" />
+      <rect x="15" y="27" width="18" height="11" rx="3.5" fill={C.butter} />
+      <path d="M20 31 h8" {...thin} />
+    </>
+  ),
+  moon: () => (
+    <>
+      <path d="M30 7 a17 17 0 1 0 11 27 a14 14 0 0 1 -11 -27 Z" fill={C.butter} />
+      <path d={starPath(37, 13, 4.5, 2)} fill={C.white} {...thin} />
+      <circle cx="17" cy="26" r="1.6" fill={INK} stroke="none" />
+      <path d="M18 33 q3 2 6 0" {...thin} />
+    </>
+  ),
+  bath: () => (
+    <>
+      <circle cx="16" cy="13" r="3.5" fill={C.white} />
+      <circle cx="24" cy="9" r="2.5" fill={C.white} />
+      <circle cx="31" cy="14" r="4" fill={C.white} />
+      <path d="M4 22 h40 v4 c0 8 -6 13 -13 13 H17 c-7 0 -13 -5 -13 -13 Z" fill={C.sky} />
+      <rect x="3" y="20" width="42" height="5" rx="2.5" fill={C.white} />
+      <path d="M13 39 l-2 4 M35 39 l2 4" />
+    </>
+  ),
+  comb: () => (
+    <g transform="rotate(-35 24 24)">
+      <rect x="20.5" y="24" width="7" height="21" rx="3.5" fill={C.lilac} />
+      <rect x="11" y="3" width="26" height="24" rx="12" fill={C.lilac} />
+      <rect x="15" y="7" width="18" height="16" rx="8" fill={C.pink} {...thin} />
+      <g fill={INK} stroke="none">
+        {[18.5, 24, 29.5].flatMap((x) => [11, 15, 19].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" />))}
+      </g>
+    </g>
+  ),
+  bowl: () => (
+    <>
+      <circle cx="16" cy="20" r="3.2" fill={C.butter} />
+      <circle cx="23" cy="17.5" r="3.2" fill={C.peach} />
+      <circle cx="30" cy="20" r="3.2" fill={C.butter} />
+      <path d="M34 21 l8 -12" />
+      <path d="M5 22 h38 c0 10 -8 17 -19 17 c-11 0 -19 -7 -19 -17 Z" fill={C.mint} />
+      <path d="M17 41 h14" />
+    </>
+  ),
+  socks: () => (
+    <>
+      <path d="M12 6 h12 v20 l-8 10 a5.5 5.5 0 0 1 -9 -6 l5 -6 Z" fill={C.lilac} />
+      <path d="M26 10 h12 v20 l-8 10 a5.5 5.5 0 0 1 -9 -6 l5 -6 Z" fill={C.mint} />
+      <path d="M12 12 h12 M26 16 h12" {...thin} />
+    </>
+  ),
+  soap: () => (
+    <>
+      <circle cx="33" cy="11" r="5" fill={C.white} />
+      <circle cx="40" cy="20" r="3" fill={C.white} />
+      <circle cx="25" cy="8" r="2.5" fill={C.white} />
+      <rect x="6" y="20" width="30" height="20" rx="8" fill={C.pink} />
+      <path d={heart(21, 30, 4)} fill={C.white} {...thin} />
+    </>
+  ),
+  cup: () => (
+    <>
+      <path d="M11 8 h26 l-3 33 a3 3 0 0 1 -3 2.6 H17 a3 3 0 0 1 -3 -2.6 Z" fill={C.white} />
+      <path d="M12.6 20 h22.8 l-1.9 21 a3 3 0 0 1 -3 2.6 H17.5 a3 3 0 0 1 -3 -2.6 Z" fill={C.sky} />
+      <path d="M18 27 v8" stroke={C.white} strokeWidth="3" />
+    </>
+  ),
+  toilet: () => (
+    <>
+      <rect x="10" y="5" width="15" height="21" rx="3" fill={C.white} />
+      <path d="M6 24 h34 a2 2 0 0 1 2 2 c0 7 -6 11 -14 11 h-2 l2 6 H14 l2 -6 c-6 -1 -10 -5 -10 -11 Z" fill={C.white} />
+      <ellipse cx="24" cy="25.5" rx="15" ry="3" fill={C.sky} />
+      <path d="M14 10 h7" {...thin} />
+    </>
+  ),
 }
 
 /** Emoji (as stored for chores, rewards, meals) -> drawn icon. Variation selectors are ignored. */
@@ -585,6 +672,8 @@ export const EMOJI = {
   '🎮': 'game', '🌮': 'taco', '🍝': 'spaghetti', '🫘': 'beans', '🥘': 'paella', '🍲': 'pot', '🥞': 'pancakes',
   '🥪': 'sandwich', '🍕': 'pizza', '🍗': 'drumstick', '🍖': 'drumstick', '🥡': 'takeout', '🍔': 'burger',
   '🥗': 'salad', '🪥': 'toothbrush', '🐾': 'paw', '🐶': 'paw', '🐱': 'paw', '🧹': 'broom', '🪴': 'plant', '🌱': 'plant',
+  '👟': 'shoes', '🥾': 'shoes', '🎒': 'backpack', '🌙': 'moon', '🌛': 'moon', '🛁': 'bath', '🚿': 'bath',
+  '🪮': 'comb', '🥣': 'bowl', '🧦': 'socks', '🧼': 'soap', '🥛': 'cup', '🚰': 'cup', '🚽': 'toilet',
 }
 
 const EMOJI_FOR = Object.fromEntries(Object.entries(EMOJI).reverse().map(([e, n]) => [n, e]))
@@ -592,6 +681,7 @@ const EMOJI_FOR = Object.fromEntries(Object.entries(EMOJI).reverse().map(([e, n]
 /** Icons offered in the pickers for chores, rewards and meals, with the emoji each one saves as. */
 export const PICKER = [
   'star', 'bed', 'basket', 'teddy', 'shirt', 'spoon', 'bubbles', 'trash', 'broom', 'toothbrush', 'paw', 'plant',
+  'shoes', 'backpack', 'moon', 'bath', 'comb', 'bowl', 'socks', 'soap', 'cup', 'toilet', 'sun',
   'book', 'plate', 'cart', 'gift', 'party', 'sundae', 'cone', 'soda', 'cookie', 'donut', 'popcorn', 'movie', 'game',
   'taco', 'spaghetti', 'beans', 'paella', 'pot', 'pancakes', 'sandwich', 'pizza', 'drumstick', 'takeout',
   'burger', 'salad',

@@ -117,8 +117,8 @@
 }
 
 @media (max-width: 700px) {
-  /* six tabs: a little tighter so "Countdowns" fits */
-  .sections button { font-size: 11px; padding: 4px 0; letter-spacing: -0.3px; }
+  /* seven tabs: a little tighter so every label fits */
+  .sections button { font-size: 10px; padding: 4px 0; letter-spacing: -0.4px; }
   .sections button .ic { width: 26px; height: 26px; }
   .countdown-grid { grid-template-columns: 1fr; gap: 10px; }
   .countdown-card, .countdown-card.big { grid-column: auto; min-height: 0; padding: 12px 14px; gap: 14px; }

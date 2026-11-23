@@ -181,7 +181,7 @@ export default function Chores({ people, version }) {
 }
 
 /** After a chore worth marbles is checked: show the kid's jar with the new blues dropping in. */
-function MarblesEarned({ change, person, onClose }) {
+export function MarblesEarned({ change, person, onClose, extra = null }) {
   const { count, jar } = change
   const gained = count > 0
   // Start with the jar as it was, then add the new marbles so they drop in from the top
@@ -210,6 +210,7 @@ function MarblesEarned({ change, person, onClose }) {
         <h2>
           +{what} for {person.name}! <Icon name="party" />
         </h2>
+        {extra && <p className="earned-extra">{extra}</p>}
         <Jar jar={shown} person={person} leaving={null} />
         <p className="note">
           {jar.blue} blue in the jar now. Tap anywhere to close.
