@@ -245,9 +245,10 @@ export default function App() {
             rows
               .filter((e) => !hidden.has(e.person_id ?? 'none'))
               .map((e) => {
-                // The colour picked in Google Calendar wins; family colours are for jars, chores and filters
-                const google = GOOGLE_COLORS[e.color_id]
-                const color = google?.bg ?? peopleById[e.person_id]?.color ?? UNASSIGNED_COLOR
+                // The colour picked in Google Calendar wins, then the colour set for its Google event label;
+                // family colours are for jars, chores and filters
+                const google = GOOGLE_COLORS[e.color_id]?.bg ?? (e.label_color || null)
+                const color = google ?? peopleById[e.person_id]?.color ?? UNASSIGNED_COLOR
                 return {
                   id: e.id,
                   title: e.summary,
@@ -256,7 +257,7 @@ export default function App() {
                   allDay: e.all_day,
                   backgroundColor: color,
                   borderColor: color,
-                  textColor: google ? textOn(google.bg) : '#1e293b',
+                  textColor: google ? textOn(google) : '#1e293b',
                   extendedProps: { row: e },
                 }
               }),

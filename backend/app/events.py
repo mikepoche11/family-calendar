@@ -72,6 +72,8 @@ def from_google(item: dict, people: list[dict]) -> dict | None:
         "recurring": int(bool(item.get("recurringEventId"))),
         "updated": item.get("updated", ""),
         "color_id": item.get("colorId") or "",
+        # Google's newer event labels: the id comes through, the label's colour does not (set it in Settings)
+        "label_id": item.get("eventLabelId") or "",
     }
 
 

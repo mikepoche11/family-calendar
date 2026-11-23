@@ -84,6 +84,8 @@ export const api = {
   addSticker: (body) => request('POST', '/api/stickers', body),
   updateSticker: (id, body) => request('PATCH', `/api/stickers/${id}`, body),
   deleteSticker: (id) => request('DELETE', `/api/stickers/${id}`),
+  eventLabels: () => request('GET', '/api/event-labels'),
+  setLabelColor: (id, color) => request('PUT', `/api/event-labels/${encodeURIComponent(id)}`, { color }),
   events: (start, end) =>
     request('GET', `/api/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
   createEvent: (body) => request('POST', '/api/events', body),
