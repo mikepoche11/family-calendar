@@ -115,3 +115,22 @@
   .show-night .kid { font-size: 17px; white-space: normal; }
   .show-night .swap { padding: 0 10px; }
 }
+
+@media (max-width: 700px) {
+  /* seven tabs: a little tighter so every label fits */
+  .sections button { font-size: 10px; padding: 4px 0; letter-spacing: -0.4px; }
+  .sections button .ic { width: 26px; height: 26px; }
+  .countdown-grid { grid-template-columns: 1fr; gap: 10px; }
+  .countdown-card, .countdown-card.big { grid-column: auto; min-height: 0; padding: 12px 14px; gap: 14px; }
+  .countdown-card .cd-icon { width: 64px; height: 64px; }
+  .countdown-card.big .cd-icon { width: 88px; height: 88px; }
+  .countdown-card .cd-num { font-size: 40px; }
+  .countdown-card.big .cd-num { font-size: 60px; }
+  .countdown-card .cd-name, .countdown-card.big .cd-name { font-size: 20px; }
+  .countdowns .chores-head { flex-wrap: wrap; gap: 8px; }
+  .countdowns .row-actions { width: 100%; }
+  .countdowns .row-actions button { flex: 1 1 auto; }
+  .countdown-strip { justify-content: stretch; }
+  .countdown-pill { flex: 1; min-height: 44px; font-size: 15px; padding: 0 12px 0 8px; }
+  .countdown-pill .num { font-size: 20px; }
+}

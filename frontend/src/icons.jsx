@@ -135,6 +135,16 @@ export const ICONS = {
       <path d={heart(30.5, 28, 10)} fill={C.pink} />
     </>
   ),
+  hourglass: () => (
+    <>
+      <path d="M14 10 H34 C34 18 28 21 26 24 C28 27 34 30 34 38 H14 C14 30 20 27 22 24 C20 21 14 18 14 10 Z" fill={C.ice} />
+      <path d="M17.5 14 H30.5 C29.5 18 26 20.5 24 22.5 C22 20.5 18.5 18 17.5 14 Z" fill={C.butter} stroke="none" />
+      <path d="M24 26 v6" stroke={C.orange} strokeWidth="1.8" />
+      <path d="M17 36 C18 32 21 30.5 24 30.5 C27 30.5 30 32 31 36 Z" fill={C.butter} stroke="none" />
+      <rect x="10" y="6" width="28" height="5" rx="2.5" fill={C.lilac} />
+      <rect x="10" y="37" width="28" height="5" rx="2.5" fill={C.lilac} />
+    </>
+  ),
   party: () => (
     <>
       <path d="M7 41 L15 18 L30 33 Z" fill={C.peach} />
@@ -654,7 +664,7 @@ export const ICONS = {
 export const EMOJI = {
   '📅': 'calendar', '🗓': 'calendar', '🛒': 'cart', '🍽': 'plate', '✅': 'chores', '✔': 'chores', '🫙': 'jar',
   '⚙': 'gear', '✎': 'pencil', '✏': 'pencil', '🤝': 'anyone', '🎉': 'party', '⭐': 'star', '🌟': 'star',
-  '🛍': 'bag', '⚖': 'scale', '↶': 'undo', '🎁': 'gift', '🎲': 'dice', '📖': 'book', '💡': 'bulb',
+  '🛍': 'bag', '⚖': 'scale', '↶': 'undo', '🎁': 'gift', '⏳': 'hourglass', '⌛': 'hourglass', '🎲': 'dice', '📖': 'book', '💡': 'bulb',
   '☀': 'sun', '⛅': 'cloud-sun', '🌤': 'cloud-sun', '☁': 'cloud', '🌫': 'fog', '🌦': 'drizzle', '🌧': 'rain',
   '❄': 'snow', '🌨': 'snow', '⛈': 'storm', '🌩': 'storm',
   '🛏': 'bed', '🧺': 'basket', '🧸': 'teddy', '👕': 'shirt', '🥄': 'spoon', '🫧': 'bubbles', '🗑': 'trash',
@@ -672,7 +682,7 @@ const EMOJI_FOR = Object.fromEntries(Object.entries(EMOJI).reverse().map(([e, n]
 export const PICKER = [
   'star', 'bed', 'basket', 'teddy', 'shirt', 'spoon', 'bubbles', 'trash', 'broom', 'toothbrush', 'paw', 'plant',
   'shoes', 'backpack', 'moon', 'bath', 'comb', 'bowl', 'socks', 'soap', 'cup', 'toilet', 'sun',
-  'book', 'plate', 'cart', 'gift', 'sundae', 'cone', 'soda', 'cookie', 'donut', 'popcorn', 'movie', 'game',
+  'book', 'plate', 'cart', 'gift', 'party', 'sundae', 'cone', 'soda', 'cookie', 'donut', 'popcorn', 'movie', 'game',
   'taco', 'spaghetti', 'beans', 'paella', 'pot', 'pancakes', 'sandwich', 'pizza', 'drumstick', 'takeout',
   'burger', 'salad',
 ].map((name) => ({ name, emoji: EMOJI_FOR[name] }))

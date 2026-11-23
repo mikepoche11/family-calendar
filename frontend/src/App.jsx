@@ -17,6 +17,7 @@ import Marbles from './Marbles.jsx'
 import Meals from './Meals.jsx'
 import Routines from './Routines.jsx'
 import { ROUTINE, activeKind } from './routineTime.js'
+import Countdowns, { CountdownStrip } from './Countdowns.jsx'
 import { Icon } from './icons.jsx'
 import { GOOGLE_COLORS, textOn } from './googleColors.js'
 import { applyTheme, themeById } from './themes.js'
@@ -62,6 +63,7 @@ export default function App() {
   const [routinesVersion, setRoutinesVersion] = useState(0)
   const [routineSettings, setRoutineSettings] = useState(null)
   const [clock, setClock] = useState(() => new Date())
+  const [countdowns, setCountdowns] = useState([])
   const [range, setRange] = useState(null) // visible days, for stickers
   const [stickers, setStickers] = useState([])
   const [stickerPicker, setStickerPicker] = useState(false)
@@ -80,6 +82,7 @@ export default function App() {
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
   const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
   const loadRoutineSettings = useCallback(() => api.routines().then((r) => setRoutineSettings(r.settings)).catch(() => {}), [])
+  const loadCountdowns = useCallback(() => api.countdowns().then((r) => setCountdowns(r.countdowns)).catch(() => {}), [])
   const rangeRef = useRef(null)
   rangeRef.current = range
   const loadStickers = useCallback(() => {
@@ -94,11 +97,13 @@ export default function App() {
     loadHealth()
     loadPhotos()
     loadRoutineSettings()
+    loadCountdowns()
     const loadConfig = () => api.config().then(setConfig).catch(() => {})
     loadConfig()
     if (window.location.search) window.history.replaceState(null, '', '/')
     const w = setInterval(loadWeather, 15 * 60 * 1000)
     const h = setInterval(loadHealth, 60 * 1000)
+    const cd = setInterval(loadCountdowns, 10 * 60 * 1000) // days left tick over at midnight
     const unsubscribe = subscribe((kind) => {
       if (kind === 'people') {
         loadPeople()
@@ -116,14 +121,16 @@ export default function App() {
       if (kind === 'marbles') return setMarblesVersion((v) => v + 1)
       if (kind === 'meals') return setMealsVersion((v) => v + 1)
       if (kind === 'stickers') return loadStickers()
+      if (kind === 'countdowns') return loadCountdowns()
       refetch()
     })
     return () => {
       clearInterval(w)
       clearInterval(h)
+      clearInterval(cd)
       unsubscribe()
     }
-  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadRoutineSettings, loadStickers, refetch])
+  }, [loadPeople, loadWeather, loadHealth, loadPhotos, loadRoutineSettings, loadStickers, loadCountdowns, refetch])
 
   // Morning / bedtime routine that's on right now (the wall switches to it when nobody is using the screen)
   useEffect(() => {
@@ -309,6 +316,9 @@ export default function App() {
           <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
             <Icon name="jar" /> Marbles
           </button>
+          <button className={section === 'countdowns' ? 'on' : ''} onClick={() => setSection('countdowns')}>
+            <Icon name="hourglass" /> {isPhone ? 'Countdown' : 'Countdowns'}
+          </button>
         </nav>
       </Header>
 
@@ -316,6 +326,7 @@ export default function App() {
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
       {section === 'meals' && <Meals version={mealsVersion} />}
       {section === 'routines' && <Routines people={people} version={routinesVersion} />}
+      {section === 'countdowns' && <Countdowns countdowns={countdowns} reload={loadCountdowns} />}
       {section === 'marbles' && <Marbles people={people} version={marblesVersion} theme={config.theme ?? ''} />}
 
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
@@ -326,6 +337,7 @@ export default function App() {
           <button onClick={() => cal()?.next()} aria-label="Next">›</button>
           <span className="range">{title}</span>
         </div>
+        <CountdownStrip countdowns={countdowns} max={isPhone ? 1 : 2} onOpen={() => setSection('countdowns')} />
         <div className="views">
           {VIEWS.filter((v) => !isPhone || PHONE_VIEWS.has(v.id)).map((v) => (
             <button
