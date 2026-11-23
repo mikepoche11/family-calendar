@@ -638,10 +638,9 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
   .weather .day { display: flex; align-items: center; gap: 6px; font-size: 17px; }
   .weather .day .icon { font-size: 22px; }
 }
-/* narrower screens: drop the forecast first, then the condition words */
-@media (min-width: 701px) and (max-width: 1500px) { .weather .day:nth-child(n+3) { display: none; } }
+/* narrower screens: drop the condition words */
 @media (min-width: 701px) and (max-width: 1200px) {
-  .weather .days, .weather .now .label { display: none; }
+  .weather .now .label { display: none; }
   .clock .date { font-size: 20px; }
 }
 
@@ -667,3 +666,68 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
   .fc .fc-timegrid-slot-label { font-size: 13px; line-height: 1; }
   .fc .fc-timegrid-slot-label-cushion { padding: 0 4px; }
 }
+
+/* ---- Event details (EventView.jsx): look first, Edit second ---- */
+.event-view { gap: 14px; }
+.ev-head { display: flex; align-items: flex-start; gap: 14px; }
+.ev-swatch { flex: none; width: 22px; height: 22px; margin-top: 6px; border-radius: 6px; background: var(--ev, var(--accent)); }
+.event-view h2 { font-size: 32px; line-height: 1.2; overflow-wrap: anywhere; }
+.ev-when { margin: 0 0 0 36px; font-size: 22px; color: var(--ink); }
+.ev-line { margin: 0 0 0 36px; font-size: 20px; display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.ev-label { color: var(--muted); font-size: 16px; text-transform: uppercase; letter-spacing: 0.04em; }
+.ev-notes { margin: 0 0 0 36px; font-size: 18px; color: var(--muted); white-space: pre-wrap; max-height: 30vh; overflow-y: auto; }
+.event-view .actions button { min-width: 120px; }
+
+/* ---- Week as seven columns of event cards (AgendaWeek.jsx) ---- */
+.calendar { position: relative; }
+.calendar.agenda-mode .fc { visibility: hidden; pointer-events: none; }
+.agenda-week { position: absolute; inset: 8px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.agenda-day { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); }
+.agenda-day:first-child { border-left: none; }
+.agenda-day.today { background: var(--today); border-radius: 12px; }
+.agenda-day-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px; }
+.agenda-day-head .dow { font-size: 22px; font-weight: 600; }
+.agenda-day-head .num { font-size: 22px; font-weight: 600; min-width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 999px; }
+.agenda-day.today .num { background: var(--accent); color: #fff; }
+.agenda-day-head .count { margin-left: auto; font-size: 15px; color: var(--muted); }
+.agenda-day-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 8px; padding: 0 8px 8px; }
+.agenda-day-body::-webkit-scrollbar { display: none; }
+.agenda-day-body.more { mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); }
+.agenda-card {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%; flex: none;
+  min-height: 0; min-width: 0; padding: 10px 12px; text-align: left;
+  border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+.agenda-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.agenda-title { font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.agenda-when { font-weight: 500; opacity: 0.85; margin-top: 2px; }
+.agenda-card .avatar { flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
+/* card size follows the busiest day of the week */
+.size-xl .agenda-card { padding: 16px 14px; border-radius: 16px; }
+.size-xl .agenda-title { font-size: 26px; }
+.size-xl .agenda-when { font-size: 19px; }
+.size-l .agenda-card { padding: 12px 12px; }
+.size-l .agenda-title { font-size: 22px; }
+.size-l .agenda-when { font-size: 17px; }
+.size-m .agenda-title { font-size: 19px; }
+.size-m .agenda-when { font-size: 15px; }
+/* a crowded day: title and time on one line */
+.agenda-day-body.compact { gap: 5px; }
+.agenda-day-body.compact .agenda-card { padding: 6px 10px; border-radius: 10px; align-items: center; }
+.agenda-day-body.compact .agenda-text { flex-direction: row-reverse; justify-content: flex-end; align-items: baseline; gap: 8px; }
+.agenda-day-body.compact .agenda-title { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.agenda-day-body.compact .agenda-when { font-size: 14px; margin: 0; white-space: nowrap; flex: none; }
+.agenda-empty { border: 2px dashed var(--line); background: none; color: var(--muted); font-size: 18px; }
+.agenda-day-foot {
+  flex: none; display: flex; flex-direction: column; gap: 6px; margin: 0 8px 4px; padding: 10px 6px 4px;
+  border-top: 1px dashed var(--line); font-size: 17px;
+}
+.foot-dinner { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+.foot-dinner .ic, .foot-weather .ic { width: 1.5em; height: 1.5em; flex: none; margin: 0; }
+.foot-dinner .foot-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot-dinner.none { color: var(--muted); font-weight: 400; }
+.foot-weather { display: flex; align-items: center; gap: 6px; color: var(--ink); }
+.foot-weather .lo { color: var(--muted); }
+.agenda-card .avatar { border-radius: 50%; }
+.agenda-day-foot { min-height: 72px; justify-content: flex-end; }
+.agenda-day:last-child .agenda-day-foot { padding-right: 84px; } /* room for the + button */

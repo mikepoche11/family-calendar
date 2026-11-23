@@ -7,6 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { api, subscribe } from './api.js'
 import Header from './Header.jsx'
 import EventModal, { draftFrom } from './EventModal.jsx'
+import EventView from './EventView.jsx'
+import AgendaWeek from './AgendaWeek.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
 import useIsPhone from './useIsPhone.js'
@@ -25,11 +27,12 @@ import { ListDayStickers, StickerLayer, StickerPicker, toDay } from './Stickers.
 
 const VIEWS = [
   { id: 'timeGridDay', label: 'Day' },
-  { id: 'timeGridWeek', label: 'Week' },
+  { id: 'dayGridAgendaWeek', label: 'Week' },
   { id: 'dayGridMonth', label: 'Month' },
   { id: 'listTwoWeeks', label: 'Schedule' },
 ]
-const DEFAULT_VIEW = 'timeGridWeek'
+const AGENDA = 'dayGridAgendaWeek'
+const DEFAULT_VIEW = AGENDA
 // A week of columns is unreadable on a phone, so phones start on the two-week schedule and skip Week
 const PHONE_VIEW = 'listTwoWeeks'
 const PHONE_VIEWS = new Set(['timeGridDay', 'dayGridMonth', 'listTwoWeeks'])
@@ -44,6 +47,9 @@ export default function App() {
   const [weather, setWeather] = useState(null)
   const [health, setHealth] = useState(null)
   const [view, setView] = useState(DEFAULT_VIEW)
+  const [fcEvents, setFcEvents] = useState([])
+  const [weekStart, setWeekStart] = useState(null)
+  const [viewing, setViewing] = useState(null) // { row, color } of the event being looked at
   const [title, setTitle] = useState('')
   const [draft, setDraft] = useState(null)
   const [showSettings, setShowSettings] = useState(() =>
@@ -392,12 +398,17 @@ export default function App() {
         </div>
       )}
 
-      <main className="calendar">
+      <main className={`calendar${view === AGENDA ? ' agenda-mode' : ''}`}>
         <FullCalendar
           ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
           initialView={isPhone ? PHONE_VIEW : DEFAULT_VIEW}
           views={{
+            // the wall's Week. FullCalendar keeps the dates and loads the events; AgendaWeek draws them
+            dayGridAgendaWeek: {
+              type: 'dayGrid',
+              duration: { weeks: 1 },
+            },
             listTwoWeeks: {
               type: 'list',
               duration: { days: 14 },
@@ -411,6 +422,7 @@ export default function App() {
             },
           }}
           headerToolbar={false}
+          eventsSet={setFcEvents}
           height="100%"
           nowIndicator
           selectable
@@ -424,13 +436,29 @@ export default function App() {
           events={fetchEvents}
           datesSet={(info) => {
             setView(info.view.type)
+            setWeekStart(info.start)
             setTitle(info.view.title)
             setRange({ start: toDay(info.start), end: toDay(info.end), key: `${info.view.type} ${info.startStr}` })
           }}
           dateClick={(info) => setDraft(draftFrom({ start: info.date, allDay: info.allDay }))}
           select={(info) => setDraft(draftFrom({ start: info.start, end: info.end, allDay: info.allDay }))}
-          eventClick={(info) => setDraft(draftFrom({ event: info.event.extendedProps.row }))}
+          eventClick={(info) => setViewing({ row: info.event.extendedProps.row, color: info.event.backgroundColor })}
         />
+        {view === AGENDA && weekStart && (
+          <AgendaWeek
+            start={weekStart}
+            events={fcEvents}
+            peopleById={peopleById}
+            weather={weather}
+            mealsVersion={mealsVersion}
+            onEvent={(ev) => setViewing({ row: ev.extendedProps.row, color: ev.backgroundColor })}
+            onDay={(day) => {
+              const start = new Date(day)
+              start.setHours(9, 0, 0, 0)
+              setDraft(draftFrom({ start }))
+            }}
+          />
+        )}
         <StickerLayer
           stickers={stickers}
           setStickers={setStickers}
@@ -482,6 +510,19 @@ export default function App() {
 
       {screensaver && photos.length > 0 && (
         <Screensaver photos={photos} slideSeconds={config.slide_seconds} onClose={() => setScreensaver(false)} />
+      )}
+
+      {viewing && (
+        <EventView
+          row={viewing.row}
+          color={viewing.color}
+          people={people}
+          onClose={() => setViewing(null)}
+          onEdit={() => {
+            setDraft(draftFrom({ event: viewing.row }))
+            setViewing(null)
+          }}
+        />
       )}
 
       {draft && (
