@@ -297,31 +297,35 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header weather={weather} themeIcons={themeById(config.theme).icons}>
-        <nav className="sections">
-          <button className={section === 'calendar' ? 'on' : ''} onClick={() => setSection('calendar')}>
-            <Icon name="calendar" /> Calendar
-          </button>
-          <button className={section === 'grocery' ? 'on' : ''} onClick={() => setSection('grocery')}>
-            <Icon name="cart" /> Grocery
-          </button>
-          <button className={section === 'meals' ? 'on' : ''} onClick={() => setSection('meals')}>
-            <Icon name="plate" /> Meals
-          </button>
-          <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
-            <Icon name="chores" /> Chores
-          </button>
-          <button className={section === 'routines' ? 'on' : ''} onClick={() => setSection('routines')}>
-            <Icon name={ROUTINE[routineNow ?? 'morning'].icon} /> Routines
-          </button>
-          <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
-            <Icon name="jar" /> Marbles
-          </button>
-          <button className={section === 'countdowns' ? 'on' : ''} onClick={() => setSection('countdowns')}>
-            <Icon name="hourglass" /> {isPhone ? 'Countdown' : 'Countdowns'}
-          </button>
-        </nav>
-      </Header>
+      <nav className="sections rail">
+        <button className={section === 'calendar' ? 'on' : ''} onClick={() => setSection('calendar')}>
+          <Icon name="calendar" /> Calendar
+        </button>
+        <button className={section === 'grocery' ? 'on' : ''} onClick={() => setSection('grocery')}>
+          <Icon name="cart" /> Grocery
+        </button>
+        <button className={section === 'meals' ? 'on' : ''} onClick={() => setSection('meals')}>
+          <Icon name="plate" /> Meals
+        </button>
+        <button className={section === 'chores' ? 'on' : ''} onClick={() => setSection('chores')}>
+          <Icon name="chores" /> Chores
+        </button>
+        <button className={section === 'routines' ? 'on' : ''} onClick={() => setSection('routines')}>
+          <Icon name={ROUTINE[routineNow ?? 'morning'].icon} /> Routines
+        </button>
+        <button className={section === 'marbles' ? 'on' : ''} onClick={() => setSection('marbles')}>
+          <Icon name="jar" /> Marbles
+        </button>
+        <button className={section === 'countdowns' ? 'on' : ''} onClick={() => setSection('countdowns')}>
+          <Icon name="hourglass" /> {isPhone ? 'Countdown' : 'Countdowns'}
+        </button>
+        <button className="rail-settings" onClick={() => setShowSettings('family')}>
+          <Icon name="gear" /> Settings
+        </button>
+      </nav>
+
+      <div className="main">
+      <Header weather={weather} themeIcons={themeById(config.theme).icons} />
 
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
@@ -412,9 +416,10 @@ export default function App() {
           selectable
           selectLongPressDelay={250}
           dayMaxEvents={isPhone ? 2 : 4}
-          scrollTime="07:00:00"
+          scrollTime="06:00:00"
           slotMinTime="06:00:00"
-          slotMaxTime="23:00:00"
+          slotMaxTime="21:00:00"
+          expandRows
           allDayText="All day"
           events={fetchEvents}
           datesSet={(info) => {
@@ -440,6 +445,7 @@ export default function App() {
       <button className="fab" onClick={() => setDraft(draftFrom({}))} aria-label="Add event">
         +
       </button>
+      </div>
       </div>
 
       {showSettings && (

@@ -58,6 +58,7 @@ project for the full plan.
 4. [Photo screensaver](docs/photos-setup.md) (optional)
 5. [Meal planning](docs/meal-planning.md) (how to use it)
 6. [Calendar stickers](docs/calendar-stickers.md) (how to use them)
+7. [Screen layout](docs/screen-layout.md) (side rail, week view, different screen sizes)
 
 ## Develop
 

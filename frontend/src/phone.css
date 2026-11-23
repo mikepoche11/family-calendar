@@ -38,6 +38,7 @@
   }
   .sections button .ic { width: 28px; height: 28px; margin: 0; }
   .sections button.on { color: var(--ink); border: none; }
+  .sections .rail-settings { display: none; }
 
   /* calendar controls */
   .calendar-section { gap: 8px; }
