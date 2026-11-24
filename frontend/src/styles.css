@@ -182,7 +182,8 @@ a.button.primary { background: var(--primary); border-color: var(--primary-edge)
 .ss-settings .check input { width: 26px; height: 26px; accent-color: var(--accent); }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 340px; overflow-y: auto; }
 .thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--line); }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .thumb-play { position: absolute; left: 6px; bottom: 6px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 13px; pointer-events: none; }
 .thumb button { position: absolute; top: 4px; right: 4px; min-width: 40px; min-height: 40px; width: 40px; height: 40px; padding: 0; border-radius: 50%; background: rgba(15, 23, 42, 0.6); color: #fff; border: none; font-size: 24px; }
 
 /* screensaver */
@@ -196,6 +197,7 @@ a.button.primary { background: var(--primary); border-color: var(--primary-edge)
 .screensaver .slide.on .drift-b { animation: ss-drift-b var(--slide, 17s) ease-out forwards; }
 @keyframes ss-drift-a { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.06) translate(-1%, -1%); } }
 @keyframes ss-drift-b { from { transform: scale(1.06) translate(1%, 0); } to { transform: scale(1) translate(0, 0); } }
+.screensaver .photo.video { filter: none; }
 @media (prefers-reduced-motion: reduce) { .screensaver .slide.on .photo { animation: none; } }
 /* pastel card: time, weather, what's next today */
 .ss-card { position: absolute; left: 40px; bottom: 40px; width: min(600px, calc(100% - 200px)); padding: 24px 28px; border-radius: 28px; background: rgba(253, 248, 239, 0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #334155; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); }
@@ -661,6 +663,8 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
   .rail button .ic, .sections.rail button .ic { width: 34px; height: 34px; margin: 0; vertical-align: 0; }
   .rail button.on { color: var(--ink); }
   .rail .rail-settings { display: flex; margin-top: auto; }
+  .rail .rail-photos { margin-top: auto; }
+  .rail .rail-photos + .rail-settings { margin-top: 0; }
   .people .settings-btn { display: none; }
 
   /* one slim top line: time + date on the left, weather on the right */

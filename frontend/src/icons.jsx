@@ -135,6 +135,15 @@ export const ICONS = {
       <path d={heart(30.5, 28, 10)} fill={C.pink} />
     </>
   ),
+  photos: () => (
+    <>
+      <rect x="9" y="8" width="26" height="22" rx="3" fill={C.lilac} transform="rotate(-8 22 19)" />
+      <rect x="13" y="14" width="27" height="25" rx="3" fill={C.white} />
+      <path d="M16.5 17.5 H36.5 V32 H16.5 Z" fill={C.sky} stroke="none" />
+      <path d="M16.5 32 L23 24.5 L27.5 29 L30.5 26 L36.5 32 Z" fill={C.green} />
+      <circle cx="32" cy="21.5" r="2.4" fill={C.butter} />
+    </>
+  ),
   hourglass: () => (
     <>
       <path d="M14 10 H34 C34 18 28 21 26 24 C28 27 34 30 34 38 H14 C14 30 20 27 22 24 C20 21 14 18 14 10 Z" fill={C.ice} />

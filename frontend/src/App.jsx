@@ -421,6 +421,11 @@ export default function App() {
         <button className={section === 'countdowns' ? 'on' : ''} onClick={() => setSection('countdowns')}>
           <Icon name="hourglass" /> {isPhone ? 'Countdown' : 'Countdowns'}
         </button>
+        {!isPhone && (
+          <button className="rail-photos" onClick={() => (photos.length ? setScreensaver('now') : setShowSettings('photos'))} aria-label="Start the photo slideshow now">
+            <Icon name="photos" /> Photos
+          </button>
+        )}
         <button className="rail-settings" onClick={() => setShowSettings('family')}>
           <Icon name="gear" /> Settings
         </button>
@@ -630,7 +635,7 @@ export default function App() {
           }}
           onPreview={() => {
             setShowSettings(false)
-            loadPhotos().then(() => setScreensaver(true))
+            loadPhotos().then(() => setScreensaver('now'))
           }}
         />
       )}
@@ -650,7 +655,7 @@ export default function App() {
       {screensaver && (photos.length > 0 || isNight(ssSettings)) && (
         <Screensaver
           photos={photos}
-          settings={ssSettings}
+          settings={screensaver === 'now' ? { ...ssSettings, night: false } : ssSettings}
           weather={weather}
           people={people}
           onClose={() => setScreensaver(false)}

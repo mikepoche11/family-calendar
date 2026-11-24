@@ -13,6 +13,40 @@ const shuffle = (arr) => {
 }
 
 const src = (name) => `/api/photos/file/${encodeURIComponent(name)}`
+export const isVideo = (name) => /\.(mp4|webm)$/i.test(name)
+const VIDEO_MAX_SECONDS = 60 // a long clip plays its first minute, then the slideshow moves on
+
+/** A muted video that plays from the start while it's the current slide, then calls onDone. */
+function VideoSlide({ name, active, paused, alone, onDone }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    if (active && !paused) {
+      if (v.ended) v.currentTime = 0
+      v.play().catch(() => {})
+    } else v.pause()
+  }, [active, paused])
+  // back to the start whenever it comes round again
+  useEffect(() => {
+    const v = ref.current
+    if (active && v) v.currentTime = 0
+  }, [active])
+  return (
+    <video
+      ref={ref}
+      className="photo video"
+      src={src(name)}
+      muted
+      playsInline
+      loop={alone}
+      preload={active ? 'auto' : 'metadata'}
+      onEnded={() => active && onDone()}
+      onError={() => active && onDone()}
+      onTimeUpdate={(e) => active && !alone && e.currentTarget.currentTime >= VIDEO_MAX_SECONDS && onDone()}
+    />
+  )
+}
 const timeText = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
 /** True when the time of day falls in night hours ("21:00" to "06:00" wraps past midnight). */
@@ -67,7 +101,7 @@ function useUpcoming(people, enabled) {
 }
 
 /**
- * Full-screen photo slideshow. Each photo fills the screen over a soft blurred copy of itself (no
+ * Full-screen photo and video slideshow. Videos play muted to the end (first minute at most). Each photo fills the screen over a soft blurred copy of itself (no
  * black bars for tall phone photos) and drifts slowly. A pastel card shows the time, weather and
  * what's next today. During night hours it shows only a dim clock instead. Any touch closes it.
  */
@@ -93,15 +127,18 @@ export default function Screensaver({ photos, settings, weather, people = [], on
     })
   }, [photos])
 
-  // Next photo after slideSeconds; a swipe restarts the wait, pause stops it
+  // Next photo after slideSeconds; a swipe restarts the wait, pause stops it.
+  // A video moves on when it ends (or after a minute); the longer timer here is only a safety net.
+  const curIsVideo = isVideo(order[index % (order.length || 1)] ?? '')
+  const advance = () => {
+    setQuick(false)
+    setIndex((i) => (i + 1) % order.length)
+  }
   useEffect(() => {
     if (!showPhotos || paused || order.length < 2) return
-    const t = setTimeout(() => {
-      setQuick(false)
-      setIndex((i) => (i + 1) % order.length)
-    }, slideSeconds * 1000)
+    const t = setTimeout(advance, (curIsVideo ? VIDEO_MAX_SECONDS + 10 : slideSeconds) * 1000)
     return () => clearTimeout(t)
-  }, [showPhotos, paused, index, order.length, slideSeconds])
+  }, [showPhotos, paused, index, order.length, slideSeconds, curIsVideo])
 
   const step = (dir) => {
     if (order.length < 2) return
@@ -119,7 +156,7 @@ export default function Screensaver({ photos, settings, weather, people = [], on
   const next = order.length ? (cur + 1) % order.length : 0
   const prev = order.length ? (cur - 1 + order.length) % order.length : 0
   useEffect(() => {
-    if (showPhotos && order[next]) new Image().src = src(order[next])
+    if (showPhotos && order[next] && !isVideo(order[next])) new Image().src = src(order[next])
   }, [showPhotos, next, order])
 
   const close = (e) => {
@@ -173,8 +210,14 @@ export default function Screensaver({ photos, settings, weather, people = [], on
         if (i !== cur && i !== next && i !== prev) return null // the ones around it stay loaded for swipes
         return (
           <div key={name} className={`slide ${i === cur ? 'on' : ''}`}>
-            <img className="fill" src={src(name)} alt="" draggable={false} />
-            <img className={`photo ${i % 2 ? 'drift-b' : 'drift-a'}`} src={src(name)} alt="" draggable={false} />
+            {isVideo(name) ? (
+              <VideoSlide name={name} active={i === cur} paused={paused} alone={order.length < 2} onDone={advance} />
+            ) : (
+              <>
+                <img className="fill" src={src(name)} alt="" draggable={false} />
+                <img className={`photo ${i % 2 ? 'drift-b' : 'drift-a'}`} src={src(name)} alt="" draggable={false} />
+              </>
+            )}
           </div>
         )
       })}

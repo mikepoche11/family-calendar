@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { api } from './api.js'
+import { isVideo } from './Screensaver.jsx'
 
 /** Settings tab for the photo screensaver: connect Google Photos, pick photos, manage them. */
 export default function PhotosPanel({ onPreview }) {
@@ -99,11 +100,11 @@ export default function PhotosPanel({ onPreview }) {
         <button className="primary" onClick={() => fileRef.current?.click()} disabled={upload && upload.done < upload.total}>
           Add photos
         </button>
-        <span className="hint">From this phone, tablet or computer. On a phone, your camera roll opens.</span>
+        <span className="hint">Photos and MP4 videos from this phone, tablet or computer. On a phone, your gallery opens.</span>
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/mp4,video/webm"
           multiple
           hidden
           onChange={(e) => {
@@ -114,12 +115,12 @@ export default function PhotosPanel({ onPreview }) {
       </div>
       {upload && upload.done < upload.total && (
         <p className="big">
-          Adding photos… {upload.done} of {upload.total}
+          Adding… {upload.done} of {upload.total}{upload.total - upload.done > 0 && ' (videos take a moment)'}
         </p>
       )}
       {upload && upload.done === upload.total && (
         <p className="big">
-          Added {upload.added} photo{upload.added === 1 ? '' : 's'}
+          Added {upload.added} item{upload.added === 1 ? '' : 's'}
           {upload.total - upload.added - upload.failed.length > 0 && ` (${upload.total - upload.added - upload.failed.length} already here)`}.
         </p>
       )}
@@ -220,7 +221,14 @@ export default function PhotosPanel({ onPreview }) {
           <div className="thumbs">
             {photos.map((name) => (
               <div className="thumb" key={name}>
-                <img src={`/api/photos/file/${encodeURIComponent(name)}`} alt="" loading="lazy" />
+                {isVideo(name) ? (
+                  <>
+                    <video src={`/api/photos/file/${encodeURIComponent(name)}#t=0.5`} muted playsInline preload="metadata" />
+                    <span className="thumb-play" aria-label="Video">▶</span>
+                  </>
+                ) : (
+                  <img src={`/api/photos/file/${encodeURIComponent(name)}`} alt="" loading="lazy" />
+                )}
                 <button aria-label="Remove photo" onClick={() => act(() => api.deletePhoto(name))}>
                   ×
                 </button>

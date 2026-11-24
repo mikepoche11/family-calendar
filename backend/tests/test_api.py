@@ -316,7 +316,7 @@ def test_photo_upload_resizes_rotates_and_dedupes(client, tmp_path):
     with Image.open(io.BytesIO(client.get(f"/api/photos/file/{name}").content)) as img:
         assert img.size == (683, 2048)  # turned upright, longest side 2048
     again = client.post("/api/photos/upload", content=data).json()
-    assert again == {"name": name, "added": False}
+    assert again == {"name": name, "added": False, "video": False}
     assert len(client.get("/api/photos").json()) == 1
 
 
@@ -336,3 +336,28 @@ def test_screensaver_settings(client):
     assert ss["minutes"] == 3 and ss["night_start"] == "22:30" and ss["card"] is False
     assert client.put("/api/screensaver", json=body | {"night_end": "25:00"}).status_code == 422
     assert client.put("/api/screensaver", json=body | {"minutes": 0}).status_code == 422
+
+
+def _fake_mp4(codec=b"avc1", size=3 * 1024 * 1024):
+    head = b"\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2"
+    body = bytearray(size)
+    body[size // 2 : size // 2 + 4] = codec  # sample entry deep in the file, as in a real moov box
+    return head + bytes(body)
+
+
+def test_video_upload_kept_as_is_and_served_with_ranges(client):
+    data = _fake_mp4()
+    r = client.post("/api/photos/upload", content=data)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["video"] is True and body["added"] is True and body["name"].endswith(".mp4")
+    assert client.get("/api/photos").json() == [body["name"]]
+    part = client.get(f"/api/photos/file/{body['name']}", headers={"Range": "bytes=0-99"})
+    assert part.status_code == 206 and part.content == data[:100]  # browsers seek videos with ranges
+    assert client.post("/api/photos/upload", content=data).json()["added"] is False
+
+
+def test_hevc_video_rejected_with_advice(client):
+    r = client.post("/api/photos/upload", content=_fake_mp4(b"hvc1"))
+    assert r.status_code == 400 and "HEVC" in r.json()["detail"]
+    assert client.get("/api/photos").json() == []

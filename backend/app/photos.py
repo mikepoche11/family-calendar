@@ -39,10 +39,13 @@ PICKER_API = "https://photospicker.googleapis.com/v1"
 SCOPE = "https://www.googleapis.com/auth/photospicker.mediaitems.readonly"
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+VIDEO_EXT = {".mp4", ".webm"}
+MEDIA_EXT = IMAGE_EXT | VIDEO_EXT
 SAFE_NAME = re.compile(r"^[A-Za-z0-9._-]{1,200}$")
 REFRESH_TOKEN_KEY = "google_photos_refresh_token"
 MAX_SIDE = 2048  # longest side kept for uploads and Google picks; plenty for a 27" screen
 MAX_UPLOAD = 40 * 1024 * 1024
+MAX_VIDEO = 500 * 1024 * 1024  # about 4 minutes of 1080p from a phone; the wall plays only the first minute
 Image.MAX_IMAGE_PIXELS = 100_000_000  # refuse absurd images instead of using all the memory
 
 
@@ -82,7 +85,7 @@ class Photos:
         return bool(self.db.get_meta(REFRESH_TOKEN_KEY))
 
     def list(self) -> list[str]:
-        files = [p for p in self.dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXT]
+        files = [p for p in self.dir.iterdir() if p.is_file() and p.suffix.lower() in MEDIA_EXT]
         files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         return [p.name for p in files if SAFE_NAME.match(p.name)]
 
@@ -90,7 +93,7 @@ class Photos:
         if not SAFE_NAME.match(name):
             return None
         p = self.dir / name
-        return p if p.is_file() and p.suffix.lower() in IMAGE_EXT else None
+        return p if p.is_file() and p.suffix.lower() in MEDIA_EXT else None
 
     def delete(self, name: str) -> bool:
         p = self.path_for(name)
@@ -131,6 +134,39 @@ class Photos:
             return name, False
         tmp = path.with_suffix(".part")
         tmp.write_bytes(out.getvalue())
+        tmp.replace(path)
+        return name, True
+
+    def save_video(self, tmp: Path, head: bytes) -> tuple[str, bool]:
+        """Keep an uploaded video (already streamed to tmp) as-is. Returns (file name, newly added).
+
+        Phones' normal MP4 (H.264) plays in the wall's browser. HEVC ("high efficiency") clips often
+        don't on Linux, so those are turned away with a message rather than showing up blank.
+        """
+        kind = video_kind(head)
+        if kind is None:
+            tmp.unlink(missing_ok=True)
+            raise PhotosError("That video type can't play on the screen (use MP4)")
+        digest = hashlib.sha1()
+        hevc = False
+        tail = b""
+        with tmp.open("rb") as f:
+            while chunk := f.read(1024 * 1024):
+                digest.update(chunk)
+                if kind == "mp4" and not hevc:
+                    hevc = b"hvc1" in tail + chunk or b"hev1" in tail + chunk
+                    tail = chunk[-8:]
+        if hevc:
+            tmp.unlink(missing_ok=True)
+            raise PhotosError(
+                "That video was recorded in high-efficiency (HEVC) format, which the wall can't play. "
+                "Turn off the HEVC / high-efficiency video setting in your phone's camera for future clips"
+            )
+        name = "vid-" + digest.hexdigest()[:16] + "." + kind
+        path = self.dir / name
+        if path.exists():
+            tmp.unlink(missing_ok=True)
+            return name, False
         tmp.replace(path)
         return name, True
 
@@ -276,6 +312,15 @@ class Photos:
             page_token = page.get("nextPageToken")
             if not page_token:
                 return added
+
+
+def video_kind(head: bytes) -> str | None:
+    """'mp4' or 'webm' from a file's first bytes, else None."""
+    if len(head) >= 12 and head[4:8] == b"ftyp" and head[8:12] not in (b"qt  ", b"heic", b"heix", b"mif1", b"avif"):
+        return "mp4"
+    if head[:4] == b"\x1a\x45\xdf\xa3":
+        return "webm"
+    return None
 
 
 def _seconds(value: str | None, default: float) -> float:
