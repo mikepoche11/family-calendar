@@ -26,6 +26,56 @@ function eventsOn(events, day) {
     .sort((a, b) => (b.allDay - a.allDay) || (a.start - b.start) || a.title.localeCompare(b.title))
 }
 
+const dayIndex = (start, d) => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - start) / 86400000)
+
+/**
+ * All-day events that cover two or more of the shown days become one bar across those days. That includes one
+ * multi-day event and also a run of separate all-day events with the same title and colour on back-to-back days
+ * (how a "No school" week is often entered). Bars are stacked into lanes so they never overlap.
+ */
+function buildSpans(events, start) {
+  const groups = {}
+  for (const e of events) {
+    if (!e.allDay || !e.start) continue
+    const key = `${e.title.trim().toLowerCase()}|${e.backgroundColor}`
+    ;(groups[key] ??= []).push(e)
+  }
+  const runs = []
+  for (const list of Object.values(groups)) {
+    list.sort((a, b) => a.start - b.start)
+    let run = null
+    for (const e of list) {
+      const end = e.end ?? addDays(e.start, 1)
+      if (run && e.start <= run.end) {
+        if (end > run.end) run.end = end
+        run.events.push(e)
+      } else {
+        run = { ev: e, start: e.start, end, events: [e] }
+        runs.push(run)
+      }
+    }
+  }
+  const spans = runs
+    .map((r) => ({ ...r, from: Math.max(0, dayIndex(start, r.start)), to: Math.min(7, dayIndex(start, r.end)) }))
+    .filter((r) => r.to - r.from >= 2)
+    .sort((a, b) => a.from - b.from || (b.to - b.from) - (a.to - a.from))
+  const lanes = [] // last day used in each lane
+  for (const sp of spans) {
+    let lane = lanes.findIndex((busyUntil) => busyUntil <= sp.from)
+    if (lane === -1) lane = lanes.length
+    lanes[lane] = sp.to
+    sp.lane = lane
+  }
+  return spans
+}
+
+// "All day · Mon to Fri" (end is exclusive, so the last day is the day before it)
+function spanLabel(sp) {
+  const last = addDays(sp.end, -1)
+  const wd = (d) => d.toLocaleDateString([], { weekday: 'short' })
+  return `All day · ${wd(sp.start)} to ${wd(last)}`
+}
+
 function whenLabel(ev, compact) {
   if (ev.allDay) return 'All day'
   if (compact) return shortTime(ev.start) // one-line cards: start time only, so the title gets the room
@@ -51,7 +101,7 @@ function useDinners(start, version) {
   return byDay
 }
 
-function DayColumn({ day, events, isToday, size, peopleById, dinner, weather, onEvent, onDay }) {
+function DayColumn({ day, col, lanes, events, size, peopleById, dinner, weather, onEvent, onDay }) {
   const bodyRef = useRef(null)
   const [overflows, setOverflows] = useState(false)
   const compact = events.length >= COMPACT_AT
@@ -67,12 +117,7 @@ function DayColumn({ day, events, isToday, size, peopleById, dinner, weather, on
   }, [events.length, size])
 
   return (
-    <section className={`agenda-day${isToday ? ' today' : ''}`} data-date={toDay(day)}>
-      <header className="agenda-day-head">
-        <span className="dow">{day.toLocaleDateString([], { weekday: 'short' })}</span>
-        <span className="num">{day.getDate()}</span>
-        {events.length > 0 && <span className="count">{events.length}</span>}
-      </header>
+    <section className="agenda-day" data-date={toDay(day)} style={{ gridColumn: col, gridRow: 2, '--lanes': lanes }}>
       <div
         ref={bodyRef}
         className={`agenda-day-body${compact ? ' compact' : ''}${overflows ? ' more' : ''}`}
@@ -125,19 +170,66 @@ function DayColumn({ day, events, isToday, size, peopleById, dinner, weather, on
  */
 export default function AgendaWeek({ start, events, peopleById, weather, mealsVersion, onEvent, onDay }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
+  const spans = buildSpans(events, start)
+  const inSpan = new Set(spans.flatMap((sp) => sp.events))
   const perDay = days.map((d) => eventsOn(events, d))
-  const size = sizeFor(Math.max(0, ...perDay.map((l) => l.length)))
+  const cards = perDay.map((list) => list.filter((e) => !inSpan.has(e)))
+  const size = sizeFor(Math.max(0, ...cards.map((l) => l.length)))
+  // how many bar lanes sit over each day, so that day's cards start right under its own bars
+  const lanesOn = days.map((_, i) => Math.max(0, ...spans.filter((sp) => sp.from <= i && i < sp.to).map((sp) => sp.lane + 1)))
   const dinners = useDinners(start, mealsVersion)
   const forecast = Object.fromEntries((weather?.days ?? []).map((d) => [d.date, d]))
   const today = toDay(new Date())
   return (
     <div className={`agenda-week ${size}`}>
       {days.map((d, i) => (
+        <div key={`bg${i}`} className={`agenda-col${toDay(d) === today ? ' today' : ''}`} style={{ gridColumn: i + 1 }} />
+      ))}
+      {days.map((d, i) => (
+        <header
+          key={`h${i}`}
+          className={`agenda-day-head${toDay(d) === today ? ' today' : ''}`}
+          style={{ gridColumn: i + 1, gridRow: 1 }}
+        >
+          <span className="dow">{d.toLocaleDateString([], { weekday: 'short' })}</span>
+          <span className="num">{d.getDate()}</span>
+          {perDay[i].length > 0 && <span className="count">{perDay[i].length}</span>}
+        </header>
+      ))}
+      {spans.length > 0 && (
+        <div className="agenda-spans" style={{ gridColumn: '1 / -1', gridRow: 2 }}>
+          {spans.map((sp) => {
+            const row = sp.ev.extendedProps.row
+            const person = peopleById[row?.person_id]
+            return (
+              <button
+                key={sp.ev.id}
+                className={`agenda-card agenda-span${dayIndex(start, sp.start) < 0 ? ' cont-left' : ''}${dayIndex(start, sp.end) > 7 ? ' cont-right' : ''}`}
+                style={{
+                  gridColumn: `${sp.from + 1} / ${sp.to + 1}`,
+                  gridRow: sp.lane + 1,
+                  background: sp.ev.backgroundColor,
+                  color: sp.ev.textColor,
+                }}
+                onClick={() => onEvent(sp.ev)}
+              >
+                <span className="agenda-text">
+                  <span className="agenda-title">{sp.ev.title}</span>
+                  <span className="agenda-when">{spanLabel(sp)}</span>
+                </span>
+                {person && <Avatar person={person} size={28} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {days.map((d, i) => (
         <DayColumn
           key={toDay(d)}
           day={d}
-          events={perDay[i]}
-          isToday={toDay(d) === today}
+          col={i + 1}
+          lanes={lanesOn[i]}
+          events={cards[i]}
           size={size}
           peopleById={peopleById}
           dinner={dinners[toDay(d)]}

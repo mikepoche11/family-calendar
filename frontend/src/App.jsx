@@ -15,7 +15,7 @@ import useIsPhone from './useIsPhone.js'
 import Screensaver from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
-import Marbles from './Marbles.jsx'
+import Marbles, { ShowNightBadge } from './Marbles.jsx'
 import Meals from './Meals.jsx'
 import Routines from './Routines.jsx'
 import { ROUTINE, activeKind } from './routineTime.js'
@@ -26,16 +26,18 @@ import { applyTheme, themeById } from './themes.js'
 import { ListDayStickers, StickerLayer, StickerPicker, toDay } from './Stickers.jsx'
 
 const VIEWS = [
-  { id: 'timeGridDay', label: 'Day' },
   { id: 'dayGridAgendaWeek', label: 'Week' },
   { id: 'dayGridMonth', label: 'Month' },
-  { id: 'listTwoWeeks', label: 'Schedule' },
+  { id: 'listTwoWeeks', label: 'Schedule' }, // phones only
 ]
 const AGENDA = 'dayGridAgendaWeek'
 const DEFAULT_VIEW = AGENDA
-// A week of columns is unreadable on a phone, so phones start on the two-week schedule and skip Week
+// A week of columns is unreadable on a phone, so phones get the two-week schedule list instead of Week.
+// The wall has Week and Month only.
 const PHONE_VIEW = 'listTwoWeeks'
-const PHONE_VIEWS = new Set(['timeGridDay', 'dayGridMonth', 'listTwoWeeks'])
+const PHONE_VIEWS = new Set(['dayGridMonth', 'listTwoWeeks'])
+const WALL_VIEWS = new Set(['dayGridAgendaWeek', 'dayGridMonth'])
+const SWIPE_PX = 80 // a sideways swipe this long on the calendar moves to the next/previous week or month
 const UNASSIGNED_COLOR = '#cbd5e1'
 const IDLE_RESET_MS = 2 * 60 * 1000 // go back to today after 2 minutes untouched
 
@@ -48,6 +50,8 @@ export default function App() {
   const [health, setHealth] = useState(null)
   const [view, setView] = useState(DEFAULT_VIEW)
   const [fcEvents, setFcEvents] = useState([])
+  const [showNight, setShowNight] = useState(null)
+  const swipe = useRef(null)
   const [weekStart, setWeekStart] = useState(null)
   const [viewing, setViewing] = useState(null) // { row, color } of the event being looked at
   const [title, setTitle] = useState('')
@@ -84,6 +88,13 @@ export default function App() {
   const refetch = useCallback(() => calRef.current?.getApi().refetchEvents(), [])
 
   const loadPeople = useCallback(() => api.people().then(setPeople).catch(() => {}), [])
+  // whose night it is to pick the TV show, for the badge on the calendar; re-checked hourly so it turns over at midnight
+  useEffect(() => {
+    const load = () => api.showNight().then(setShowNight).catch(() => {})
+    load()
+    const t = setInterval(load, 60 * 60 * 1000)
+    return () => clearInterval(t)
+  }, [marblesVersion])
   const loadWeather = useCallback(() => api.weather().then(setWeather).catch(() => {}), [])
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
   const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
@@ -350,7 +361,7 @@ export default function App() {
         </div>
         <CountdownStrip countdowns={countdowns} max={isPhone ? 1 : 2} onOpen={() => setSection('countdowns')} />
         <div className="views">
-          {VIEWS.filter((v) => !isPhone || PHONE_VIEWS.has(v.id)).map((v) => (
+          {VIEWS.filter((v) => (isPhone ? PHONE_VIEWS : WALL_VIEWS).has(v.id)).map((v) => (
             <button
               key={v.id}
               className={view === v.id ? 'on' : ''}
@@ -383,6 +394,12 @@ export default function App() {
         </button>
         {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
         {health?.mode === 'demo' && <span className="demo">Demo data</span>}
+        <ShowNightBadge
+          show={showNight}
+          peopleById={peopleById}
+          theme={config.theme ?? ''}
+          onOpen={() => setSection('marbles')}
+        />
         <button className="sticker-btn" onClick={() => setStickerPicker(true)}>
           <Icon name="star" /> Stickers
         </button>
@@ -398,7 +415,27 @@ export default function App() {
         </div>
       )}
 
-      <main className={`calendar${view === AGENDA ? ' agenda-mode' : ''}`}>
+      <main
+        className={`calendar${view === AGENDA ? ' agenda-mode' : ''}`}
+        onPointerDown={(e) => {
+          // stickers have their own drag; leave those alone
+          swipe.current = placing || e.target.closest('.sticker') ? null : { x: e.clientX, y: e.clientY, t: Date.now() }
+        }}
+        onPointerUp={(e) => {
+          const s = swipe.current
+          swipe.current = null
+          if (!s) return
+          const dx = e.clientX - s.x
+          const dy = e.clientY - s.y
+          if (Math.abs(dx) < SWIPE_PX || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - s.t > 800) return
+          // a swipe, not a tap: don't let the click that follows open an event or a new-event form
+          const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault() }
+          window.addEventListener('click', swallow, { capture: true, once: true })
+          setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 400)
+          if (dx < 0) cal()?.next()
+          else cal()?.prev()
+        }}
+      >
         <FullCalendar
           ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -425,7 +462,7 @@ export default function App() {
           eventsSet={setFcEvents}
           height="100%"
           nowIndicator
-          selectable
+          selectable={isPhone}
           selectLongPressDelay={250}
           dayMaxEvents={isPhone ? 2 : 4}
           scrollTime="06:00:00"

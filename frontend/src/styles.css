@@ -681,14 +681,34 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 /* ---- Week as seven columns of event cards (AgendaWeek.jsx) ---- */
 .calendar { position: relative; }
 .calendar.agenda-mode .fc { visibility: hidden; pointer-events: none; }
-.agenda-week { position: absolute; inset: 8px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.agenda-day { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); }
-.agenda-day:first-child { border-left: none; }
-.agenda-day.today { background: var(--today); border-radius: 12px; }
+.agenda-week {
+  position: absolute; inset: 8px; display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr);
+  --lane-h: 52px; --lane-gap: 8px;
+}
+/* full-height column backgrounds: the divider lines and today's tint, behind everything else */
+.agenda-col { grid-row: 1 / -1; border-left: 1px solid var(--line); }
+.agenda-col:first-child { border-left: none; }
+.agenda-col.today { background: var(--today); border-radius: 12px; }
+.agenda-day { display: flex; flex-direction: column; min-height: 0; }
+/* bars for events that run across several days */
+.agenda-spans {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: var(--lane-h); gap: var(--lane-gap) 0;
+  align-self: start; position: relative; z-index: 2; pointer-events: none;
+}
+.agenda-spans .agenda-span { pointer-events: auto; }
+/* each day's cards start under only the bars that cross that day */
+.agenda-day .agenda-day-body { padding-top: calc(var(--lanes, 0) * (var(--lane-h) + var(--lane-gap))); }
+.agenda-card.agenda-span { margin: 0 8px; width: auto; height: var(--lane-h); padding-top: 0; padding-bottom: 0; align-items: center; overflow: hidden; }
+.agenda-span .agenda-text { flex-direction: row; align-items: baseline; gap: 12px; }
+.agenda-span .agenda-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.agenda-span .agenda-when { white-space: nowrap; margin: 0; flex: none; }
+.agenda-card.agenda-span.cont-left { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.agenda-card.agenda-span.cont-right { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .agenda-day-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px; }
 .agenda-day-head .dow { font-size: 22px; font-weight: 600; }
 .agenda-day-head .num { font-size: 22px; font-weight: 600; min-width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 999px; }
-.agenda-day.today .num { background: var(--accent); color: #fff; }
+.agenda-day-head.today .num { background: var(--accent); color: #fff; }
 .agenda-day-head .count { margin-left: auto; font-size: 15px; color: var(--muted); }
 .agenda-day-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 8px; padding: 0 8px 8px; }
 .agenda-day-body::-webkit-scrollbar { display: none; }
@@ -699,12 +719,12 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
   border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 .agenda-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.agenda-title { font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.agenda-title { font-weight: 700; line-height: 1.2; overflow-wrap: break-word; hyphens: auto; }
 .agenda-when { font-weight: 500; opacity: 0.85; margin-top: 2px; }
 .agenda-card .avatar { flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
 /* card size follows the busiest day of the week */
 .size-xl .agenda-card { padding: 16px 14px; border-radius: 16px; }
-.size-xl .agenda-title { font-size: 26px; }
+.size-xl .agenda-title { font-size: 24px; }
 .size-xl .agenda-when { font-size: 19px; }
 .size-l .agenda-card { padding: 12px 12px; }
 .size-l .agenda-title { font-size: 22px; }
@@ -731,3 +751,17 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 .agenda-card .avatar { border-radius: 50%; }
 .agenda-day-foot { min-height: 72px; justify-content: flex-end; }
 .agenda-day:last-child .agenda-day-foot { padding-right: 84px; } /* room for the + button */
+
+/* show night badge in the calendar's people row (Marbles.jsx ShowNightBadge) */
+.show-badge {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 10px; padding: 0 16px 0 8px;
+  border: 2px solid var(--chip, var(--line)); border-radius: 999px; font-size: 19px; white-space: nowrap;
+  background: color-mix(in srgb, var(--chip, var(--line)) 22%, var(--panel));
+}
+.show-badge .ic.tv { flex: none; width: 40px; height: 40px; margin: 0; }
+.show-badge .avatar { flex: none; }
+.show-badge + .sticker-btn { margin-left: 0; }
+@media (max-width: 700px) {
+  .people .show-badge { flex: none; min-height: 40px; font-size: 15px; margin-left: 4px; padding: 0 10px 0 4px; gap: 6px; }
+  .people .show-badge .ic.tv { width: 30px; height: 30px; }
+}
