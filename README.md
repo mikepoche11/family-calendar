@@ -22,7 +22,7 @@ colours events by family member, and shows weather.
 
 - Two-way sync with one Google calendar through a service account (pull every 5 minutes, writes go straight to Google)
 - Day, week, month and two-week schedule views, sized for touch
-- Colour per family member, from the event title (`Mike: Dentist`), with filter chips
+- Colour per family member, from the event title (`Mike: Dentist`)
 - Family settings on the wall: rename, pick a colour and one of 12 animal avatars, add or remove people
 - Shared grocery list: add from the wall or any phone, tap to check off, clear checked; duplicates are ignored
 - Meal plan: a dinner card for each night of the week with the meal's ingredients, a box of the family's saved meals (starter set included), "Fill empty nights", free dinner ideas and search from TheMealDB, and one tap to send a night's or the whole week's ingredients to the grocery list (skips what's already on it). See [docs/meal-planning.md](docs/meal-planning.md)

@@ -51,7 +51,6 @@ export default function App() {
   const calRef = useRef(null)
   const isPhone = useIsPhone()
   const [people, setPeople] = useState([])
-  const [hidden, setHidden] = useState(() => new Set())
   const [weather, setWeather] = useState(null)
   const [health, setHealth] = useState(null)
   const [view, setView] = useState(DEFAULT_VIEW)
@@ -224,10 +223,10 @@ export default function App() {
     }
   }, [isPhone, photos.length, draft, showSettings, screensaver, routineAuto, config.screensaver_minutes])
 
-  // People colours and the filter are applied when events are fetched
+  // People colours are applied when events are fetched
   useEffect(() => {
     refetch()
-  }, [people, hidden, refetch])
+  }, [people, refetch])
 
   // Return to the default view on today when nobody has touched the screen for a while (wall screen only)
   useEffect(() => {
@@ -268,11 +267,9 @@ export default function App() {
         .events(info.start.toISOString(), info.end.toISOString())
         .then((rows) =>
           success(
-            rows
-              .filter((e) => !hidden.has(e.person_id ?? 'none'))
-              .map((e) => {
+            rows.map((e) => {
                 // The colour picked in Google Calendar wins, then the colour set for its Google event label;
-                // family colours are for jars, chores and filters
+                // family colours are for jars and chores
                 const google = GOOGLE_COLORS[e.color_id]?.bg ?? (e.label_color || null)
                 const color = google ?? peopleById[e.person_id]?.color ?? UNASSIGNED_COLOR
                 return {
@@ -291,15 +288,9 @@ export default function App() {
         )
         .catch(failure)
     },
-    [hidden, peopleById],
+    [peopleById],
   )
 
-  const toggle = (key) =>
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
 
   const cal = () => calRef.current?.getApi()
 
@@ -371,6 +362,26 @@ export default function App() {
     refetch()
   }
 
+  // show night, stickers (and on phones, settings): beside the view buttons on the wall, their own row on phones
+  const extras = (
+    <div className="people">
+      {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
+      {health?.mode === 'demo' && <span className="demo">Demo data</span>}
+      <ShowNightBadge
+        show={showNight}
+        peopleById={peopleById}
+        theme={config.theme ?? ''}
+        onOpen={() => setSection('marbles')}
+      />
+      <button className="sticker-btn" onClick={() => setStickerPicker(true)}>
+        <Icon name="star" /> Stickers
+      </button>
+      <button className="settings-btn" onClick={() => setShowSettings('family')} aria-label="Settings">
+        <Icon name="gear" /> Settings
+      </button>
+    </div>
+  )
+
   return (
     <div className="app">
       <nav className="sections rail">
@@ -419,6 +430,7 @@ export default function App() {
           <span className="range">{title}</span>
         </div>
         <CountdownStrip countdowns={countdowns} max={isPhone ? 1 : 2} onOpen={() => setSection('countdowns')} />
+        {!isPhone && extras}
         <div className="views">
           {VIEWS.filter((v) => (isPhone ? PHONE_VIEWS : WALL_VIEWS).has(v.id)).map((v) => (
             <button
@@ -432,40 +444,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="people">
-        {people.map((p) => (
-          <button
-            key={p.id}
-            className={`chip ${hidden.has(p.id) ? '' : 'on'}`}
-            style={{ '--chip': p.color }}
-            onClick={() => toggle(p.id)}
-          >
-            <Avatar person={p} size={36} />
-            {p.name}
-          </button>
-        ))}
-        <button
-          className={`chip ${hidden.has('none') ? '' : 'on'}`}
-          style={{ '--chip': UNASSIGNED_COLOR }}
-          onClick={() => toggle('none')}
-        >
-          Everyone
-        </button>
-        {health?.last_error && <span className="sync-error">Sync problem: check the backend logs</span>}
-        {health?.mode === 'demo' && <span className="demo">Demo data</span>}
-        <ShowNightBadge
-          show={showNight}
-          peopleById={peopleById}
-          theme={config.theme ?? ''}
-          onOpen={() => setSection('marbles')}
-        />
-        <button className="sticker-btn" onClick={() => setStickerPicker(true)}>
-          <Icon name="star" /> Stickers
-        </button>
-        <button className="settings-btn" onClick={() => setShowSettings('family')} aria-label="Settings">
-          <Icon name="gear" /> Settings
-        </button>
-      </div>
+      {isPhone && extras}
 
       {placing && (
         <div className="placing-banner">
