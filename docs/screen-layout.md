@@ -13,7 +13,7 @@
 - **Card size follows the week.** When no day has more than 3 events the cards are big; up to 5 they're medium; busier weeks get standard cards.
 - **Busy days.** A day with 8 or more events switches to one-line cards (start time and title). If it still doesn't fit, only that day's column scrolls, and its bottom edge fades out so you can tell there's more. The other days stay put.
 - **Day footers.** The bottom of each column shows that night's dinner from the Meals page and that day's weather (icon, high and low). The forecast reaches 5 days ahead, so past days and days further out show dinner only.
-- Events that last several days (like a visit or a school break) show on each day they cover.
+- **Events across several days join into one bar** under the day headings, like a visit or a school break. That also works when the same all-day event (same title and colour) was entered separately on back-to-back days, like "NO SCHOOL" Monday to Friday. Bars that start before or run past this week have a square end on that side. Tap a bar to see the event.
 - Tap empty space in a column (or "+ Add" on an empty day) to add an event that day. Stickers work here too.
 
 ![A busy Wednesday with one-line cards](agenda-busy.png)
