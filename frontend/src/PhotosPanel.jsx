@@ -64,11 +64,12 @@ export default function PhotosPanel({ onPreview }) {
 
   // While a pick is in progress, poll for progress
   const picking = status?.pick?.state === 'waiting' || status?.pick?.state === 'downloading'
+  const busy = picking || status?.converting > 0
   useEffect(() => {
-    if (!picking) return
+    if (!busy) return
     const t = setInterval(load, 2000)
     return () => clearInterval(t)
-  }, [picking])
+  }, [busy])
 
   useEffect(() => {
     const uri = status?.pick?.state === 'waiting' ? status.pick.picker_uri : null
@@ -100,11 +101,11 @@ export default function PhotosPanel({ onPreview }) {
         <button className="primary" onClick={() => fileRef.current?.click()} disabled={upload && upload.done < upload.total}>
           Add photos
         </button>
-        <span className="hint">Photos and MP4 videos from this phone, tablet or computer. On a phone, your gallery opens.</span>
+        <span className="hint">Photos and videos from this phone, tablet or computer. On a phone, your gallery opens.</span>
         <input
           ref={fileRef}
           type="file"
-          accept="image/*,video/mp4,video/webm"
+          accept="image/*,video/*"
           multiple
           hidden
           onChange={(e) => {
@@ -168,6 +169,15 @@ export default function PhotosPanel({ onPreview }) {
         </div>
       )}
       {pick.state === 'downloading' && <p className="big">Copying photos… {pick.added} so far</p>}
+      {status.converting > 0 && (
+        <p className="big">
+          Getting {status.converting} video{status.converting === 1 ? '' : 's'} ready for the wall… {status.converting === 1 ? 'it shows' : 'they show'} up
+          when done. You can close this.
+        </p>
+      )}
+      {status.convert_errors?.map((e, i) => (
+        <p className="error" key={i}>{e}</p>
+      ))}
       {pick.state === 'done' && <p className="big">Added {pick.added} photo{pick.added === 1 ? '' : 's'}.</p>}
       {pick.state === 'error' && <p className="error">{pick.error}</p>}
       {error && <p className="error">{error}</p>}

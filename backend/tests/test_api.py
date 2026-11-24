@@ -316,7 +316,7 @@ def test_photo_upload_resizes_rotates_and_dedupes(client, tmp_path):
     with Image.open(io.BytesIO(client.get(f"/api/photos/file/{name}").content)) as img:
         assert img.size == (683, 2048)  # turned upright, longest side 2048
     again = client.post("/api/photos/upload", content=data).json()
-    assert again == {"name": name, "added": False, "video": False}
+    assert again == {"name": name, "added": False, "video": False, "converting": False}
     assert len(client.get("/api/photos").json()) == 1
 
 
@@ -357,7 +357,35 @@ def test_video_upload_kept_as_is_and_served_with_ranges(client):
     assert client.post("/api/photos/upload", content=data).json()["added"] is False
 
 
-def test_hevc_video_rejected_with_advice(client):
-    r = client.post("/api/photos/upload", content=_fake_mp4(b"hvc1"))
-    assert r.status_code == 400 and "HEVC" in r.json()["detail"]
-    assert client.get("/api/photos").json() == []
+def test_hevc_video_converted_in_background(client, tmp_path):
+    import subprocess
+    import time
+
+    clip = tmp_path / "hevc.mp4"
+    subprocess.run(
+        ["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=24", "-t", "1",
+         "-c:v", "libx265", "-tag:v", "hvc1", "-pix_fmt", "yuv420p", "-x265-params", "log-level=error", str(clip)],
+        check=True,
+    )
+    r = client.post("/api/photos/upload", content=clip.read_bytes())
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["converting"] is True and body["added"] is True
+    for _ in range(100):
+        if client.get("/api/photos/status").json()["converting"] == 0:
+            break
+        time.sleep(0.2)
+    status = client.get("/api/photos/status").json()
+    assert status["converting"] == 0 and status["convert_errors"] == []
+    assert client.get("/api/photos").json() == [body["name"]]
+    data = client.get(f"/api/photos/file/{body['name']}").content
+    assert b"avc1" in data and b"hvc1" not in data  # now H.264, which the wall plays
+    # the same clip again isn't converted twice
+    assert client.post("/api/photos/upload", content=clip.read_bytes()).json()["added"] is False
+
+
+def test_heic_photo_is_not_taken_for_a_video():
+    from app.photos import video_kind
+
+    assert video_kind(b"\x00\x00\x00\x18ftypheic" + bytes(8)) is None
+    assert video_kind(b"\x00\x00\x00\x14ftypqt  " + bytes(8)) == "mov"

@@ -22,6 +22,8 @@ import io
 import logging
 import re
 import secrets
+import shutil
+import subprocess
 import time
 from pathlib import Path
 from urllib.parse import urlencode
@@ -45,6 +47,7 @@ SAFE_NAME = re.compile(r"^[A-Za-z0-9._-]{1,200}$")
 REFRESH_TOKEN_KEY = "google_photos_refresh_token"
 MAX_SIDE = 2048  # longest side kept for uploads and Google picks; plenty for a 27" screen
 MAX_UPLOAD = 40 * 1024 * 1024
+VIDEO_SECONDS = 60  # converted videos keep their first minute (the wall plays no more than that)
 MAX_VIDEO = 500 * 1024 * 1024  # about 4 minutes of 1080p from a phone; the wall plays only the first minute
 Image.MAX_IMAGE_PIXELS = 100_000_000  # refuse absurd images instead of using all the memory
 
@@ -74,6 +77,9 @@ class Photos:
         self._access: tuple[str, float] | None = None  # (token, expires at monotonic)
         self.pick: dict = {"state": "idle"}  # idle | waiting | downloading | done | error
         self._pick_task: asyncio.Task | None = None
+        self._convert_task: asyncio.Task | None = None
+        self.convert_errors: list[str] = []
+        self.on_change = None  # called after a converted video is added
 
     # --- status ------------------------------------------------------------
     @property
@@ -137,11 +143,12 @@ class Photos:
         tmp.replace(path)
         return name, True
 
-    def save_video(self, tmp: Path, head: bytes) -> tuple[str, bool]:
-        """Keep an uploaded video (already streamed to tmp) as-is. Returns (file name, newly added).
+    def save_video(self, tmp: Path, head: bytes) -> tuple[str, bool, bool]:
+        """Store an uploaded video (already streamed to tmp). Returns (file name, newly added, converting).
 
-        Phones' normal MP4 (H.264) plays in the wall's browser. HEVC ("high efficiency") clips often
-        don't on Linux, so those are turned away with a message rather than showing up blank.
+        Phones' normal MP4 (H.264) and WebM play in the wall's browser and are kept as they are.
+        HEVC ("high efficiency") MP4s and iPhone .mov files often don't play on Linux, so they're
+        converted to H.264 in the background (see convert_pending); the video shows up once that's done.
         """
         kind = video_kind(head)
         if kind is None:
@@ -153,28 +160,84 @@ class Photos:
         with tmp.open("rb") as f:
             while chunk := f.read(1024 * 1024):
                 digest.update(chunk)
-                if kind == "mp4" and not hevc:
+                if not hevc:
                     hevc = b"hvc1" in tail + chunk or b"hev1" in tail + chunk
                     tail = chunk[-8:]
-        if hevc:
+        key = digest.hexdigest()[:16]
+        name = f"vid-{key}.{'webm' if kind == 'webm' else 'mp4'}"
+        src = self.convert_dir / f"{key}.src"
+        if (self.dir / name).exists() or src.exists():
             tmp.unlink(missing_ok=True)
-            raise PhotosError(
-                "That video was recorded in high-efficiency (HEVC) format, which the wall can't play. "
-                "Turn off the HEVC / high-efficiency video setting in your phone's camera for future clips"
-            )
-        name = "vid-" + digest.hexdigest()[:16] + "." + kind
-        path = self.dir / name
-        if path.exists():
+            return name, False, False
+        if kind == "webm" or (kind == "mp4" and not hevc):
+            tmp.replace(self.dir / name)
+            return name, True, False
+        if not shutil.which("ffmpeg"):
             tmp.unlink(missing_ok=True)
-            return name, False
-        tmp.replace(path)
-        return name, True
+            raise PhotosError("That video needs converting and this computer has no ffmpeg; rebuild with docker compose")
+        self.convert_dir.mkdir(exist_ok=True)
+        tmp.replace(src)
+        return name, True, True
+
+    # --- video conversion ------------------------------------------------------
+    @property
+    def convert_dir(self) -> Path:
+        return self.dir / ".converting"
+
+    def converting(self) -> int:
+        d = self.convert_dir
+        return len(list(d.glob("*.src"))) if d.is_dir() else 0
+
+    def convert_pending(self) -> None:
+        """Start (or keep) the background worker that converts queued videos one at a time."""
+        if self.converting() and (self._convert_task is None or self._convert_task.done()):
+            self._convert_task = asyncio.create_task(self._convert_loop())
+
+    async def _convert_loop(self) -> None:
+        while True:
+            queue = sorted(self.convert_dir.glob("*.src"), key=lambda p: p.stat().st_mtime) if self.convert_dir.is_dir() else []
+            if not queue:
+                return
+            src = queue[0]
+            try:
+                ok = await asyncio.to_thread(self._convert, src)
+            except Exception:
+                log.exception("video conversion failed")
+                ok = False
+            src.unlink(missing_ok=True)
+            if not ok:
+                self.convert_errors = (self.convert_errors + ["A video couldn't be converted, so it was skipped"])[-3:]
+            if self.on_change:
+                self.on_change()
+
+    def _convert(self, src: Path) -> bool:
+        """HEVC/.mov -> H.264 MP4: first minute only, at most 1920 px, no sound, HDR toned down to normal."""
+        out = self.convert_dir / (src.stem + ".part.mp4")
+        hdr = _transfer(src) in ("arib-std-b67", "smpte2084")
+        fit = "scale=w='min(1920,iw)':h='min(1920,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2"
+        tonemap = "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,"
+        attempts = [tonemap + fit, fit] if hdr else [fit]
+        for chain in attempts:
+            cmd = [
+                "ffmpeg", "-nostdin", "-y", "-loglevel", "error", "-i", str(src), "-t", str(VIDEO_SECONDS),
+                "-map", "0:v:0", "-vf", chain + ",format=yuv420p", "-c:v", "libx264", "-preset", "veryfast",
+                "-crf", "23", "-an", "-movflags", "+faststart", str(out),
+            ]
+            r = subprocess.run(cmd, capture_output=True, timeout=900)
+            if r.returncode == 0 and out.exists() and out.stat().st_size > 0:
+                out.replace(self.dir / f"vid-{src.stem}.mp4")
+                return True
+            log.warning("ffmpeg failed: %s", r.stderr.decode(errors="replace")[-500:])
+            out.unlink(missing_ok=True)
+        return False
 
     def status(self) -> dict:
         return {
             "configured": self.configured,
             "connected": self.connected,
             "count": len(self.list()),
+            "converting": self.converting(),
+            "convert_errors": self.convert_errors,
             "pick": self.pick,
         }
 
@@ -315,12 +378,30 @@ class Photos:
 
 
 def video_kind(head: bytes) -> str | None:
-    """'mp4' or 'webm' from a file's first bytes, else None."""
-    if len(head) >= 12 and head[4:8] == b"ftyp" and head[8:12] not in (b"qt  ", b"heic", b"heix", b"mif1", b"avif"):
-        return "mp4"
+    """'mp4', 'mov' (iPhone) or 'webm' from a file's first bytes, else None."""
+    if len(head) >= 12 and head[4:8] == b"ftyp":
+        brand = head[8:12]
+        if brand == b"qt  ":
+            return "mov"
+        if brand not in (b"heic", b"heix", b"mif1", b"msf1", b"avif"):
+            return "mp4"
+        return None
     if head[:4] == b"\x1a\x45\xdf\xa3":
         return "webm"
     return None
+
+
+def _transfer(path: Path) -> str:
+    """Colour transfer of the first video stream ('arib-std-b67' = HLG HDR, 'smpte2084' = HDR10), or ''."""
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=color_transfer",
+             "-of", "default=nw=1:nk=1", str(path)],
+            capture_output=True, timeout=60,
+        )
+        return r.stdout.decode().strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
 
 
 def _seconds(value: str | None, default: float) -> float:

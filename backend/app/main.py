@@ -133,6 +133,8 @@ async def lifespan(app: FastAPI):
     app.state.s = state
     log.info("starting in %s mode", "demo" if state.google is None else "google")
     task = asyncio.create_task(state.sync_loop())
+    state.photos.on_change = lambda: state.broadcaster.publish("photos")
+    state.photos.convert_pending()  # videos still queued from before a restart
     yield
     task.cancel()
 
@@ -1222,8 +1224,11 @@ async def photos_upload(request: Request):
                 if len(head) < 64:
                     head += chunk[: 64 - len(head)]
                 f.write(chunk)
+        converting = False
         if video_kind(head):
-            name, added = await asyncio.to_thread(s.photos.save_video, tmp, head)
+            name, added, converting = await asyncio.to_thread(s.photos.save_video, tmp, head)
+            if converting:
+                s.photos.convert_pending()
         else:
             if size > MAX_UPLOAD:
                 raise PhotosError("That photo is too big (40 MB max)")
@@ -1233,9 +1238,9 @@ async def photos_upload(request: Request):
         raise HTTPException(400, str(exc))
     finally:
         tmp.unlink(missing_ok=True)
-    if added:
+    if added and not converting:
         s.broadcaster.publish("photos")
-    return {"name": name, "added": added, "video": name.startswith("vid-")}
+    return {"name": name, "added": added, "video": name.startswith("vid-"), "converting": converting}
 
 
 @app.delete("/api/photos/file/{name}", status_code=204)
