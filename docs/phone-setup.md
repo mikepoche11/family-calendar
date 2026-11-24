@@ -121,7 +121,7 @@ and later switch to Tailscale, delete the icon and add it again from the new add
   merged). These are the same screens as the wall, laid out to fit.
 - **Calendar** opens on the two-week **Schedule** list, which is the easiest to read on a small
   screen. **Day** and **Month** are there too; Week is left out because seven columns don't fit.
-  Swipe the row of people sideways to filter, and tap **+** to add an event.
+  Tap **+** to add an event.
 - **No photo slideshow and no "back to today" timer.** Those are for the wall screen only, so your
   phone won't jump around while you're using it.
 - **Settings** works, but set up Google Photos from the wall screen or the PC, since its sign-in
