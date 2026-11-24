@@ -12,7 +12,7 @@ import AgendaWeek, { PhoneSchedule } from './AgendaWeek.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
 import useIsPhone from './useIsPhone.js'
-import Screensaver from './Screensaver.jsx'
+import Screensaver, { isNight } from './Screensaver.jsx'
 import GroceryList from './GroceryList.jsx'
 import Chores from './Chores.jsx'
 import Marbles, { ShowNightBadge } from './Marbles.jsx'
@@ -206,14 +206,29 @@ export default function App() {
     }
   }
 
+  const ssSettings = useMemo(
+    () => config.screensaver ?? { minutes: config.screensaver_minutes, slide_seconds: config.slide_seconds, night: false, card: true },
+    [config.screensaver, config.screensaver_minutes, config.slide_seconds],
+  )
+
+  // The no-photos night clock goes away by itself in the morning
+  useEffect(() => {
+    if (screensaver && !photos.length && !isNight(ssSettings, clock)) setScreensaver(false)
+  }, [screensaver, photos.length, ssSettings, clock])
+
   // Photo screensaver after SCREENSAVER_MINUTES untouched (only when there are photos and no dialog is open)
   useEffect(() => {
     // No photo slideshow while a routine is up on the wall
-    if (isPhone || !photos.length || draft || showSettings || screensaver || routineAuto) return
+    // With no photos it still dims to a clock during night hours
+    if (isPhone || draft || showSettings || screensaver || routineAuto) return
+    if (!photos.length && !ssSettings.night) return
     let timer
     const reset = () => {
       clearTimeout(timer)
-      timer = setTimeout(() => setScreensaver(true), config.screensaver_minutes * 60 * 1000)
+      timer = setTimeout(() => {
+        if (photos.length || isNight(ssSettings)) setScreensaver(true)
+        else reset()
+      }, ssSettings.minutes * 60 * 1000)
     }
     reset()
     window.addEventListener('pointerdown', reset)
@@ -221,7 +236,7 @@ export default function App() {
       clearTimeout(timer)
       window.removeEventListener('pointerdown', reset)
     }
-  }, [isPhone, photos.length, draft, showSettings, screensaver, routineAuto, config.screensaver_minutes])
+  }, [isPhone, photos.length, draft, showSettings, screensaver, routineAuto, ssSettings])
 
   // People colours are applied when events are fetched
   useEffect(() => {
@@ -632,8 +647,14 @@ export default function App() {
         />
       )}
 
-      {screensaver && photos.length > 0 && (
-        <Screensaver photos={photos} slideSeconds={config.slide_seconds} onClose={() => setScreensaver(false)} />
+      {screensaver && (photos.length > 0 || isNight(ssSettings)) && (
+        <Screensaver
+          photos={photos}
+          settings={ssSettings}
+          weather={weather}
+          people={people}
+          onClose={() => setScreensaver(false)}
+        />
       )}
 
       {viewing && (

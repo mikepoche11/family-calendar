@@ -285,3 +285,54 @@ def test_event_labels_get_colours(client):
     labels = {l["label_id"]: l for l in client.get("/api/event-labels").json()}
     assert labels["demo-pool"]["color"] == ""
     assert client.put("/api/event-labels/x", json={"color": "red"}).status_code == 422
+
+
+def _jpeg(w=3000, h=1000, color=(200, 150, 250), orientation=None):
+    import io
+
+    from PIL import Image
+
+    img = Image.new("RGB", (w, h), color)
+    out = io.BytesIO()
+    kw = {}
+    if orientation:
+        exif = Image.Exif()
+        exif[0x0112] = orientation
+        kw["exif"] = exif.tobytes()
+    img.save(out, "JPEG", **kw)
+    return out.getvalue()
+
+
+def test_photo_upload_resizes_rotates_and_dedupes(client, tmp_path):
+    import io
+
+    from PIL import Image
+
+    data = _jpeg(orientation=6)  # stored sideways, as phones do
+    r = client.post("/api/photos/upload", content=data)
+    assert r.status_code == 200 and r.json()["added"] is True
+    name = r.json()["name"]
+    assert client.get("/api/photos").json() == [name]
+    with Image.open(io.BytesIO(client.get(f"/api/photos/file/{name}").content)) as img:
+        assert img.size == (683, 2048)  # turned upright, longest side 2048
+    again = client.post("/api/photos/upload", content=data).json()
+    assert again == {"name": name, "added": False}
+    assert len(client.get("/api/photos").json()) == 1
+
+
+def test_photo_upload_rejects_non_images(client):
+    r = client.post("/api/photos/upload", content=b"not a picture")
+    assert r.status_code == 400
+    assert client.post("/api/photos/upload", content=b"").status_code == 400
+    assert client.get("/api/photos").json() == []
+
+
+def test_screensaver_settings(client):
+    ss = client.get("/api/config").json()["screensaver"]
+    assert ss == {"minutes": 10.0, "slide_seconds": 15.0, "night": True, "night_start": "21:00", "night_end": "06:00", "card": True}
+    body = ss | {"minutes": 3, "night_start": "22:30", "card": False}
+    assert client.put("/api/screensaver", json=body).status_code == 200
+    ss = client.get("/api/config").json()["screensaver"]
+    assert ss["minutes"] == 3 and ss["night_start"] == "22:30" and ss["card"] is False
+    assert client.put("/api/screensaver", json=body | {"night_end": "25:00"}).status_code == 422
+    assert client.put("/api/screensaver", json=body | {"minutes": 0}).status_code == 422

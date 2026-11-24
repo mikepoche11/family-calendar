@@ -1,14 +1,57 @@
 # Photo screensaver
 
-After a few minutes without a touch (`SCREENSAVER_MINUTES`, default 10), the wall shows a full-screen
-slideshow with a clock. Tap anywhere to get back to the calendar. Photos come from two places:
+![Slideshow with the time, weather and what's next today](photo-screensaver.png)
 
-- **Google Photos**, through Google's Photo Picker: you choose photos on your phone and the app
-  keeps copies. Since March 2025, Google no longer lets apps read a whole library or follow an
-  album, so photos you add to Google Photos later need to be picked again.
-- **Any image copied into `data/photos/`** on the machine running the backend (jpg, png, webp).
+When nobody has touched the wall for a while (10 minutes to start with), it fades into a full-screen
+slideshow of your family photos. Tall phone photos get a soft blurred edge instead of black bars,
+and each photo drifts slowly. A pastel card in the corner shows the time, today's weather and the
+next few things on today's calendar.
 
-## One-time Google setup (about 10 minutes)
+## Adding photos from your phone or iPad
+
+1. Open the calendar on your phone or iPad (the Tailscale address, see docs/phone-setup.md).
+2. Tap **Settings > Photos > Add photos**. Your camera roll opens.
+3. Tick as many photos as you like and tap **Add**. The screen shows "Adding photos… 3 of 12"
+   while they go up, and they join the slideshow on the wall straight away.
+
+Each photo is turned the right way up, shrunk to 2048 px (plenty for the 27" screen) and saved as a
+JPG. Location and camera details are dropped. Adding the same photo twice keeps one copy. You can
+also use **Add photos** from a computer's browser, or copy jpg, png or webp files straight into
+`data/photos/` in the calendar folder on the PC.
+
+To remove a photo, tap its **×** in Settings > Photos. **Remove all** clears the lot (it asks first).
+
+## Using the slideshow
+
+- **Swipe left** for the next photo, **swipe right** to go back to the one before.
+- **Pause** (round button, bottom right) keeps the current photo up until you tap play or leave.
+  "Paused" shows beside it so nobody wonders why it stopped.
+- **Tap anywhere else** to go back to the calendar. The tap won't open whatever event is underneath.
+- **Preview slideshow** in Settings > Photos starts it right away.
+
+## Settings (Settings > Photos)
+
+| Setting | What it does | Starts at |
+| --- | --- | --- |
+| Start after | Minutes with nobody touching the wall before the slideshow starts | 10 min |
+| Each photo | How long each photo stays up | 15 seconds |
+| Show time, weather and what's next | The pastel card in the corner. Off leaves a small clock only | On |
+| Dim clock instead of photos at night | During night hours the wall shows only a dim grey clock on black, which moves a little each minute so nothing burns into the screen. It works even with no photos | On, 9 PM to 6 AM |
+
+Changes save straight away and apply to the wall without a refresh. The slideshow doesn't start on
+phones, while a dialog is open, or while a morning or bedtime routine is up on the wall.
+
+The first two can also be set in `.env` (`SCREENSAVER_MINUTES`, `SLIDE_SECONDS`). Whatever you
+pick in the app wins.
+
+## Optional: Google Photos
+
+You don't need this. Uploading from your phone covers the same ground. Google no longer lets apps
+show a whole album or follow new photos, so with Google you still choose photos by hand each time;
+the difference is that you pick them from Google Photos (including shared albums) by scanning a QR
+code on the wall.
+
+### One-time Google setup (about 10 minutes)
 
 Use the same Google Cloud project as the calendar service account.
 
@@ -37,7 +80,7 @@ Use the same Google Cloud project as the calendar service account.
 > **on the wall screen itself** (when the Pi runs the backend), or in a browser on the Linux PC
 > (when the PC runs the backend). After that, picking photos works from any phone.
 
-## Picking photos
+### Picking from Google Photos
 
 1. On the wall: **⚙ Settings > Photos > Connect Google Photos**, then sign in. You only do this once.
 2. Tap **Choose photos**. A QR code appears. Scan it with a phone that's signed in to the same
