@@ -38,6 +38,12 @@ const PHONE_VIEW = 'listTwoWeeks'
 const PHONE_VIEWS = new Set(['dayGridMonth', 'listTwoWeeks'])
 const WALL_VIEWS = new Set(['dayGridAgendaWeek', 'dayGridMonth'])
 const SWIPE_PX = 80 // a sideways swipe this long on the calendar moves to the next/previous week or month
+function swallowNextClick() {
+  const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault() }
+  window.addEventListener('click', swallow, { capture: true, once: true })
+  setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 400)
+}
+
 const UNASSIGNED_COLOR = '#cbd5e1'
 const IDLE_RESET_MS = 2 * 60 * 1000 // go back to today after 2 minutes untouched
 
@@ -52,6 +58,9 @@ export default function App() {
   const [fcEvents, setFcEvents] = useState([])
   const [showNight, setShowNight] = useState(null)
   const swipe = useRef(null)
+  const mainRef = useRef(null)
+  const sliding = useRef(false)
+  const loading = useRef(false)
   const [weekStart, setWeekStart] = useState(null)
   const [viewing, setViewing] = useState(null) // { row, color } of the event being looked at
   const [title, setTitle] = useState('')
@@ -294,6 +303,56 @@ export default function App() {
 
   const cal = () => calRef.current?.getApi()
 
+  // next / previous / today with a slide: the calendar sweeps off one side and the new one comes in from the other.
+  // dir 1 = next, -1 = previous, 0 = today. fromX = where a finger drag already moved it.
+  async function go(dir, fromX = 0) {
+    const api = cal()
+    const el = mainRef.current
+    if (!api) return
+    const move = () => (dir > 0 ? api.next() : dir < 0 ? api.prev() : api.today())
+    let way = dir
+    if (dir === 0) {
+      const now = new Date()
+      way = now < api.view.currentStart ? -1 : now >= api.view.currentEnd ? 1 : 0
+    }
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (!el || !el.animate || sliding.current || !way || still) {
+      if (el) el.style.transform = el.style.opacity = ''
+      move()
+      return
+    }
+    sliding.current = true
+    try {
+      const w = el.offsetWidth
+      const out = el.animate(
+        [
+          { transform: `translateX(${fromX}px)`, opacity: Math.max(0.3, 1 - Math.abs(fromX) / w) },
+          { transform: `translateX(${-way * w}px)`, opacity: 0 },
+        ],
+        { duration: 220 * (1 - Math.min(0.6, Math.abs(fromX) / w)), easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' },
+      )
+      el.style.transform = el.style.opacity = ''
+      await out.finished
+      move()
+      // give the new week's events a moment to arrive so it doesn't slide in empty
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+      for (let t = 0; loading.current && t < 600; t += 30) await new Promise((r) => setTimeout(r, 30))
+      const back = el.animate(
+        [
+          { transform: `translateX(${way * w}px)`, opacity: 0 },
+          { transform: 'translateX(0)', opacity: 1 },
+        ],
+        { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' },
+      )
+      out.cancel()
+      await back.finished
+    } catch {
+      // an interrupted animation is fine: the calendar has already moved
+    } finally {
+      sliding.current = false
+    }
+  }
+
   // FullCalendar measures itself; re-measure when its section becomes visible again
   useEffect(() => {
     if (section === 'calendar') requestAnimationFrame(() => calRef.current?.getApi().updateSize())
@@ -354,9 +413,9 @@ export default function App() {
       <div className="calendar-section" style={{ display: section === 'calendar' ? undefined : 'none' }}>
       <div className="toolbar">
         <div className="nav">
-          <button onClick={() => cal()?.prev()} aria-label="Previous">‹</button>
-          <button onClick={() => cal()?.today()}>Today</button>
-          <button onClick={() => cal()?.next()} aria-label="Next">›</button>
+          <button onClick={() => go(-1)} aria-label="Previous">‹</button>
+          <button onClick={() => go(0)}>Today</button>
+          <button onClick={() => go(1)} aria-label="Next">›</button>
           <span className="range">{title}</span>
         </div>
         <CountdownStrip countdowns={countdowns} max={isPhone ? 1 : 2} onOpen={() => setSection('countdowns')} />
@@ -416,24 +475,50 @@ export default function App() {
       )}
 
       <main
+        ref={mainRef}
         className={`calendar${view === AGENDA ? ' agenda-mode' : ''}`}
         onPointerDown={(e) => {
           // stickers have their own drag; leave those alone
-          swipe.current = placing || e.target.closest('.sticker') ? null : { x: e.clientX, y: e.clientY, t: Date.now() }
+          swipe.current = placing || sliding.current || e.target.closest('.sticker') ? null : { x: e.clientX, y: e.clientY, t: Date.now(), drag: false }
+        }}
+        onPointerMove={(e) => {
+          // the calendar follows the finger once the move is clearly sideways
+          const s = swipe.current
+          const el = mainRef.current
+          if (!s || !el) return
+          const dx = e.clientX - s.x
+          const dy = e.clientY - s.y
+          if (!s.drag && Math.abs(dx) > 16 && Math.abs(dx) > Math.abs(dy) * 1.5) s.drag = true
+          if (s.drag) {
+            el.style.transform = `translateX(${dx}px)`
+            el.style.opacity = String(Math.max(0.3, 1 - Math.abs(dx) / el.offsetWidth))
+          }
+        }}
+        onPointerCancel={() => {
+          swipe.current = null
+          const el = mainRef.current
+          if (el) el.style.transform = el.style.opacity = ''
         }}
         onPointerUp={(e) => {
           const s = swipe.current
           swipe.current = null
           if (!s) return
+          const el = mainRef.current
           const dx = e.clientX - s.x
           const dy = e.clientY - s.y
-          if (Math.abs(dx) < SWIPE_PX || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - s.t > 800) return
+          const isSwipe = Math.abs(dx) >= SWIPE_PX && Math.abs(dy) <= Math.abs(dx) * 0.6 && (s.drag || Date.now() - s.t <= 800)
+          if (!isSwipe) {
+            // not far enough: spring back
+            if (s.drag && el?.animate) {
+              el.animate([{ transform: el.style.transform, opacity: el.style.opacity }, { transform: 'translateX(0)', opacity: 1 }], { duration: 200, easing: 'ease-out' })
+            }
+            if (el) el.style.transform = el.style.opacity = ''
+            if (s.drag) swallowNextClick()
+            return
+          }
           // a swipe, not a tap: don't let the click that follows open an event or a new-event form
-          const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault() }
-          window.addEventListener('click', swallow, { capture: true, once: true })
-          setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 400)
-          if (dx < 0) cal()?.next()
-          else cal()?.prev()
+          swallowNextClick()
+          go(dx < 0 ? 1 : -1, s.drag ? dx : 0)
         }}
       >
         <FullCalendar
@@ -460,6 +545,7 @@ export default function App() {
           }}
           headerToolbar={false}
           eventsSet={setFcEvents}
+          loading={(on) => { loading.current = on }}
           height="100%"
           nowIndicator
           selectable={isPhone}

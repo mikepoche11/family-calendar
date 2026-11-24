@@ -192,7 +192,9 @@ a.button.primary { background: var(--primary); border-color: var(--primary-edge)
 /* sections (calendar / grocery / ...) */
 .sections { display: flex; gap: 8px; }
 .sections button { font-size: 22px; font-weight: 600; padding: 0 24px; }
-.calendar-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.calendar-section { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+/* the calendar follows a sideways finger drag; vertical scrolling (busy days) still works */
+.calendar { touch-action: pan-y; will-change: transform; }
 
 /* grocery list */
 .grocery { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; max-width: 960px; width: 100%; margin: 0 auto; }

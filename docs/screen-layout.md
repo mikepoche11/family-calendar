@@ -15,7 +15,7 @@
 - **Day footers.** The bottom of each column shows that night's dinner from the Meals page and that day's weather (icon, high and low). The forecast reaches 5 days ahead, so past days and days further out show dinner only.
 - **Events across several days join into one bar** under the day headings, like a visit or a school break. That also works when the same all-day event (same title and colour) was entered separately on back-to-back days, like "NO SCHOOL" Monday to Friday. Bars that start before or run past this week have a square end on that side, and each day's cards start right under the bars that cross that day. Tap a bar to see the event.
 - Tap empty space in a column (or "+ Add" on an empty day) to add an event that day. Stickers work here too.
-- **Swipe** left or right anywhere on the calendar to go to the next or previous week (or month in Month view). The arrow buttons still work too.
+- **Swipe** left or right anywhere on the calendar to go to the next or previous week (or month in Month view). The calendar follows your finger, sweeps off the side and the new week slides in. A short drag springs back. The arrow and Today buttons slide too.
 - **Show night** sits next to the Stickers button: the TV, the kid's picture and "picks the show". Tap it to go to the Marbles page, where Swap is.
 
 ![A busy Wednesday with one-line cards](agenda-busy.png)
