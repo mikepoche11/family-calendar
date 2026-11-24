@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import secrets
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -26,7 +27,7 @@ from .labels import EventLabels
 from .marbles import MarbleError, Marbles
 from .mealdb import IdeasError, MealIdeas
 from .meals import Meals, week_start
-from .photos import Photos, PhotosError
+from .photos import MAX_UPLOAD, MAX_VIDEO, Photos, PhotosError, video_kind
 from .routines import Routines
 from .shownight import ShowNight
 from .weather import Weather
@@ -1204,16 +1205,37 @@ def photos_file(name: str, request: Request):
 
 @app.post("/api/photos/upload")
 async def photos_upload(request: Request):
-    """One photo per request, sent as the raw file body (from a phone's camera roll or a computer)."""
+    """One photo or video per request, sent as the raw file body (from a phone's camera roll or a computer).
+
+    Streamed to a temporary file, so a big video never sits in memory.
+    """
     s = st(request)
-    data = await request.body()
+    tmp = s.photos.dir / f".upload-{secrets.token_hex(8)}.part"
+    head = b""
+    size = 0
     try:
-        name, added = await asyncio.to_thread(s.photos.save_upload, data)
+        with tmp.open("wb") as f:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_VIDEO:
+                    raise PhotosError("That file is too big (500 MB max)")
+                if len(head) < 64:
+                    head += chunk[: 64 - len(head)]
+                f.write(chunk)
+        if video_kind(head):
+            name, added = await asyncio.to_thread(s.photos.save_video, tmp, head)
+        else:
+            if size > MAX_UPLOAD:
+                raise PhotosError("That photo is too big (40 MB max)")
+            data = tmp.read_bytes()
+            name, added = await asyncio.to_thread(s.photos.save_upload, data)
     except PhotosError as exc:
         raise HTTPException(400, str(exc))
+    finally:
+        tmp.unlink(missing_ok=True)
     if added:
         s.broadcaster.publish("photos")
-    return {"name": name, "added": added}
+    return {"name": name, "added": added, "video": name.startswith("vid-")}
 
 
 @app.delete("/api/photos/file/{name}", status_code=204)

@@ -21,13 +21,26 @@ also use **Add photos** from a computer's browser, or copy jpg, png or webp file
 
 To remove a photo, tap its **×** in Settings > Photos. **Remove all** clears the lot (it asks first).
 
+## Videos
+
+**Add photos** takes MP4 videos too (Android's normal format). They're kept as they are, play muted
+and all the way through, then the slideshow moves on. A long clip plays its first minute. Pause and
+swipe work the same as for photos.
+
+If the phone records in **HEVC / high-efficiency** video, the upload says that clip can't play on the
+wall instead of adding a blank slide. Turn that setting off in the phone's camera for future clips.
+iPhone .mov videos aren't taken for now.
+
 ## Using the slideshow
+
+- **Photos button** (left rail, just above Settings) starts the slideshow straight away, even
+  during night hours. With no photos yet it opens Settings > Photos.
 
 - **Swipe left** for the next photo, **swipe right** to go back to the one before.
 - **Pause** (round button, bottom right) keeps the current photo up until you tap play or leave.
   "Paused" shows beside it so nobody wonders why it stopped.
 - **Tap anywhere else** to go back to the calendar. The tap won't open whatever event is underneath.
-- **Preview slideshow** in Settings > Photos starts it right away.
+- **Preview slideshow** in Settings > Photos does the same.
 
 ## Settings (Settings > Photos)
 
