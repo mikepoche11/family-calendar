@@ -48,6 +48,7 @@ export const api = {
   copyRoutine: (body) => request('POST', '/api/routines/copy', body),
   addStarterRoutines: (kid_ids) => request('POST', '/api/routines/starter', { kid_ids }),
   marbles: () => request('GET', '/api/marbles'),
+  showNight: () => request('GET', '/api/show-night'),
   setShowNight: (person_ids) => request('PUT', '/api/show-night', { person_ids }),
   swapShowNight: () => request('POST', '/api/show-night/swap'),
   setJars: (person_ids) => request('PUT', '/api/marbles/jars', { person_ids }),

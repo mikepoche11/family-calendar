@@ -307,6 +307,19 @@ function ShowNight({ show, peopleById, theme, onSwap, onSetup }) {
   )
 }
 
+/** Small show-night badge for the calendar screen: TV, the kid's avatar and "picks tonight". Tap opens Marbles. */
+export function ShowNightBadge({ show, peopleById, theme, onOpen }) {
+  const kid = show && peopleById[show.tonight]
+  if (!kid) return null
+  return (
+    <button className="show-badge" style={{ '--chip': kid.color }} onClick={onOpen} aria-label={`Show night: ${kid.name} picks tonight`}>
+      <TvIcon theme={theme} size={40} />
+      <Avatar person={kid} size={30} />
+      <span><b>{kid.name}</b> picks the show</span>
+    </button>
+  )
+}
+
 export function Jar({ jar, person, leaving }) {
   const prev = useRef(jar.contents)
   const contents = jar.contents

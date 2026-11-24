@@ -101,7 +101,7 @@ function useDinners(start, version) {
   return byDay
 }
 
-function DayColumn({ day, col, events, size, peopleById, dinner, weather, onEvent, onDay }) {
+function DayColumn({ day, col, lanes, events, size, peopleById, dinner, weather, onEvent, onDay }) {
   const bodyRef = useRef(null)
   const [overflows, setOverflows] = useState(false)
   const compact = events.length >= COMPACT_AT
@@ -117,7 +117,7 @@ function DayColumn({ day, col, events, size, peopleById, dinner, weather, onEven
   }, [events.length, size])
 
   return (
-    <section className="agenda-day" data-date={toDay(day)} style={{ gridColumn: col, gridRow: 3 }}>
+    <section className="agenda-day" data-date={toDay(day)} style={{ gridColumn: col, gridRow: 2, '--lanes': lanes }}>
       <div
         ref={bodyRef}
         className={`agenda-day-body${compact ? ' compact' : ''}${overflows ? ' more' : ''}`}
@@ -175,6 +175,8 @@ export default function AgendaWeek({ start, events, peopleById, weather, mealsVe
   const perDay = days.map((d) => eventsOn(events, d))
   const cards = perDay.map((list) => list.filter((e) => !inSpan.has(e)))
   const size = sizeFor(Math.max(0, ...cards.map((l) => l.length)))
+  // how many bar lanes sit over each day, so that day's cards start right under its own bars
+  const lanesOn = days.map((_, i) => Math.max(0, ...spans.filter((sp) => sp.from <= i && i < sp.to).map((sp) => sp.lane + 1)))
   const dinners = useDinners(start, mealsVersion)
   const forecast = Object.fromEntries((weather?.days ?? []).map((d) => [d.date, d]))
   const today = toDay(new Date())
@@ -226,6 +228,7 @@ export default function AgendaWeek({ start, events, peopleById, weather, mealsVe
           key={toDay(d)}
           day={d}
           col={i + 1}
+          lanes={lanesOn[i]}
           events={cards[i]}
           size={size}
           peopleById={peopleById}
