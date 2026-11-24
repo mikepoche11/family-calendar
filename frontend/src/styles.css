@@ -176,18 +176,53 @@ a.button.primary { background: var(--primary); border-color: var(--primary-edge)
 .picker-box { display: flex; gap: 24px; align-items: center; background: var(--accent-soft); border-radius: 16px; padding: 16px; }
 .picker-box p { margin: 0 0 8px; }
 .big { font-size: 22px; font-weight: 600; margin: 0; }
+.ss-settings { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; background: var(--today); border-radius: 14px; padding: 14px 16px; }
+.ss-settings label { flex-direction: row; flex: none; margin: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.ss-settings select, .ss-settings input[type='time'] { font: inherit; font-size: 18px; min-height: 48px; padding: 0 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); }
+.ss-settings .check input { width: 26px; height: 26px; accent-color: var(--accent); }
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 340px; overflow-y: auto; }
 .thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--line); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb button { position: absolute; top: 4px; right: 4px; min-width: 40px; min-height: 40px; width: 40px; height: 40px; padding: 0; border-radius: 50%; background: rgba(15, 23, 42, 0.6); color: #fff; border: none; font-size: 24px; }
 
 /* screensaver */
-.screensaver { position: fixed; inset: 0; background: #000; z-index: 50; cursor: none; }
-.screensaver .slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 1.5s ease; }
+.screensaver { position: fixed; inset: 0; background: #1e1b2e; z-index: 50; cursor: none; overflow: hidden; }
+.screensaver .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 2s ease; }
 .screensaver .slide.on { opacity: 1; }
+/* blurred copy of the photo fills the edges, so tall phone photos get no black bars */
+.screensaver .fill { position: absolute; inset: -60px; width: calc(100% + 120px); height: calc(100% + 120px); object-fit: cover; filter: blur(48px) saturate(1.2) brightness(0.8); }
+.screensaver .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.35)); }
+.screensaver .slide.on .drift-a { animation: ss-drift-a var(--slide, 17s) ease-out forwards; }
+.screensaver .slide.on .drift-b { animation: ss-drift-b var(--slide, 17s) ease-out forwards; }
+@keyframes ss-drift-a { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.06) translate(-1%, -1%); } }
+@keyframes ss-drift-b { from { transform: scale(1.06) translate(1%, 0); } to { transform: scale(1) translate(0, 0); } }
+@media (prefers-reduced-motion: reduce) { .screensaver .slide.on .photo { animation: none; } }
+/* pastel card: time, weather, what's next today */
+.ss-card { position: absolute; left: 40px; bottom: 40px; width: min(600px, calc(100% - 200px)); padding: 24px 28px; border-radius: 28px; background: rgba(253, 248, 239, 0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #334155; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); }
+.screensaver { touch-action: none; }
+.screensaver.quick .slide { transition-duration: 0.6s; }
+.screensaver.paused .slide.on .photo { animation-play-state: paused; }
+.ss-controls { position: absolute; right: 40px; bottom: 40px; display: flex; align-items: center; gap: 12px; }
+.ss-pause { width: 72px; height: 72px; padding: 0; border-radius: 50%; border: none; display: grid; place-items: center; background: rgba(253, 248, 239, 0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #4c1d95; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25); cursor: pointer; }
+.ss-paused { padding: 10px 18px; border-radius: 999px; background: rgba(237, 233, 254, 0.9); color: #4c1d95; font-size: 20px; font-weight: 600; }
+.ss-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.ss-card .time { white-space: nowrap; font-size: 76px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+.ss-card .date { font-size: 24px; color: #64748b; margin-top: 6px; }
+.ss-weather { display: flex; align-items: center; gap: 10px; font-size: 40px; }
+.ss-weather .temp { font-size: 40px; font-weight: 700; line-height: 1; }
+.ss-weather .range { white-space: nowrap; font-size: 18px; color: #64748b; margin-top: 4px; }
+.ss-next { list-style: none; margin: 18px 0 0; padding: 16px 0 0; border-top: 1px solid rgba(100, 116, 139, 0.2); display: flex; flex-direction: column; gap: 10px; }
+.ss-next li { display: flex; align-items: center; gap: 12px; font-size: 22px; min-width: 0; }
+.ss-next .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.ss-next .when { flex: none; width: 96px; color: #64748b; font-weight: 600; }
+.ss-next .what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ss-clock { position: absolute; left: 40px; bottom: 32px; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
 .ss-clock .time { font-size: 72px; font-weight: 700; line-height: 1; }
-.ss-clock .date { font-size: 28px; margin-top: 6px; }
+/* night: dim clock only */
+.screensaver.night { background: #000; }
+.night-clock { position: absolute; transform: translate(-50%, -50%); text-align: center; color: rgba(203, 213, 225, 0.35); transition: left 2s ease, top 2s ease; }
+.night-clock .time { font-size: 120px; font-weight: 300; line-height: 1; }
+.night-clock .date { font-size: 28px; margin-top: 8px; }
 
 /* sections (calendar / grocery / ...) */
 .sections { display: flex; gap: 8px; }

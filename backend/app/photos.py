@@ -17,6 +17,8 @@ Images copied into DATA_DIR/photos by hand (jpg, jpeg, png, webp) show in the sl
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import io
 import logging
 import re
 import secrets
@@ -25,6 +27,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .db import Database
 
@@ -38,6 +41,9 @@ SCOPE = "https://www.googleapis.com/auth/photospicker.mediaitems.readonly"
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 SAFE_NAME = re.compile(r"^[A-Za-z0-9._-]{1,200}$")
 REFRESH_TOKEN_KEY = "google_photos_refresh_token"
+MAX_SIDE = 2048  # longest side kept for uploads and Google picks; plenty for a 27" screen
+MAX_UPLOAD = 40 * 1024 * 1024
+Image.MAX_IMAGE_PIXELS = 100_000_000  # refuse absurd images instead of using all the memory
 
 
 class PhotosError(Exception):
@@ -98,6 +104,35 @@ class Photos:
         for n in names:
             (self.dir / n).unlink(missing_ok=True)
         return len(names)
+
+    def save_upload(self, data: bytes) -> tuple[str, bool]:
+        """Store a photo sent from a phone or computer. Returns (file name, newly added).
+
+        The photo is turned upright (phones store rotation separately), shrunk to MAX_SIDE and saved
+        as JPEG, which also drops location and camera details. The same photo uploaded twice is kept once.
+        """
+        if not data:
+            raise PhotosError("That file is empty")
+        if len(data) > MAX_UPLOAD:
+            raise PhotosError("That photo is too big (40 MB max)")
+        try:
+            with Image.open(io.BytesIO(data)) as img:
+                img = ImageOps.exif_transpose(img)
+                img.thumbnail((MAX_SIDE, MAX_SIDE))
+                if img.mode != "RGB":
+                    img = img.convert("RGB")
+                out = io.BytesIO()
+                img.save(out, "JPEG", quality=88, optimize=True)
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+            raise PhotosError("That isn't a photo this screen can show (use JPG, PNG or WebP)")
+        name = "up-" + hashlib.sha1(data).hexdigest()[:16] + ".jpg"
+        path = self.dir / name
+        if path.exists():
+            return name, False
+        tmp = path.with_suffix(".part")
+        tmp.write_bytes(out.getvalue())
+        tmp.replace(path)
+        return name, True
 
     def status(self) -> dict:
         return {

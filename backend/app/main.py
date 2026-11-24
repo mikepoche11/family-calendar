@@ -325,6 +325,7 @@ def config(request: Request):
         "mode": "demo" if s.google is None else "google",
         "screensaver_minutes": s.settings.screensaver_minutes,
         "slide_seconds": s.settings.slide_seconds,
+        "screensaver": _screensaver(s),
         "theme": s.db.get_meta("theme") or "",
         "theme_backgrounds": _theme_backgrounds(s),
     }
@@ -362,6 +363,44 @@ def set_theme_background(body: ThemeBackgroundIn, request: Request):
     s.db.set_meta("theme_backgrounds", json.dumps(data, sort_keys=True))
     s.broadcaster.publish("theme")
     return {"theme_backgrounds": data}
+
+
+TIME = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
+
+
+class ScreensaverIn(BaseModel):
+    minutes: float = Field(ge=1, le=120)  # untouched minutes before the slideshow starts
+    slide_seconds: float = Field(ge=5, le=300)
+    night: bool = True  # dim clock instead of photos during night hours
+    night_start: str = Field(default="21:00", pattern=TIME)
+    night_end: str = Field(default="06:00", pattern=TIME)
+    card: bool = True  # time, weather and what's next on top of the photos
+
+
+def _screensaver(s) -> dict:
+    """Slideshow settings: what's been saved in the app, else the .env defaults."""
+    data = {
+        "minutes": s.settings.screensaver_minutes,
+        "slide_seconds": s.settings.slide_seconds,
+        "night": True,
+        "night_start": "21:00",
+        "night_end": "06:00",
+        "card": True,
+    }
+    try:
+        saved = json.loads(s.db.get_meta("screensaver") or "{}")
+        data |= ScreensaverIn(**(data | saved)).model_dump()
+    except (ValueError, TypeError):
+        pass
+    return data
+
+
+@app.put("/api/screensaver")
+def set_screensaver(body: ScreensaverIn, request: Request):
+    s = st(request)
+    s.db.set_meta("screensaver", json.dumps(body.model_dump(), sort_keys=True))
+    s.broadcaster.publish("theme")  # screens reload /api/config
+    return _screensaver(s)
 
 
 @app.put("/api/theme")
@@ -1161,6 +1200,20 @@ def photos_file(name: str, request: Request):
     if path is None:
         raise HTTPException(404, "No such photo")
     return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.post("/api/photos/upload")
+async def photos_upload(request: Request):
+    """One photo per request, sent as the raw file body (from a phone's camera roll or a computer)."""
+    s = st(request)
+    data = await request.body()
+    try:
+        name, added = await asyncio.to_thread(s.photos.save_upload, data)
+    except PhotosError as exc:
+        raise HTTPException(400, str(exc))
+    if added:
+        s.broadcaster.publish("photos")
+    return {"name": name, "added": added}
 
 
 @app.delete("/api/photos/file/{name}", status_code=204)

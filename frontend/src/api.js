@@ -81,6 +81,13 @@ export const api = {
   disconnectPhotos: () => request('POST', '/api/photos/disconnect'),
   deletePhoto: (name) => request('DELETE', `/api/photos/file/${encodeURIComponent(name)}`),
   deleteAllPhotos: () => request('DELETE', '/api/photos'),
+  uploadPhoto: async (file) => {
+    const res = await fetch('/api/photos/upload', { method: 'POST', body: file })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : res.statusText)
+    return data
+  },
+  setScreensaver: (body) => request('PUT', '/api/screensaver', body),
   stickers: (start, end) => request('GET', `/api/stickers?start=${start}&end=${end}`),
   addSticker: (body) => request('POST', '/api/stickers', body),
   updateSticker: (id, body) => request('PATCH', `/api/stickers/${id}`, body),

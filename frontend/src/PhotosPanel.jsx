@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { api } from './api.js'
 
@@ -9,6 +9,43 @@ export default function PhotosPanel({ onPreview }) {
   const [qr, setQr] = useState(null)
   const [error, setError] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [upload, setUpload] = useState(null) // { done, total, added, failed }
+  const [ss, setSs] = useState(null)
+  const fileRef = useRef(null)
+
+  useEffect(() => {
+    api.config().then((c) => setSs(c.screensaver)).catch(() => {})
+  }, [])
+
+  async function saveSs(change) {
+    const next = { ...ss, ...change }
+    setSs(next)
+    try {
+      setSs(await api.setScreensaver(next))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  // One photo at a time, so a big batch from a phone shows progress and one bad file doesn't stop the rest
+  async function uploadFiles(files) {
+    const list = [...files]
+    if (!list.length) return
+    setError(null)
+    const state = { done: 0, total: list.length, added: 0, failed: [] }
+    setUpload({ ...state })
+    for (const f of list) {
+      try {
+        const r = await api.uploadPhoto(f)
+        if (r.added) state.added++
+      } catch (err) {
+        state.failed.push(`${f.name}: ${err.message}`)
+      }
+      state.done++
+      setUpload({ ...state })
+    }
+    await load()
+  }
 
   const load = async () => {
     try {
@@ -54,14 +91,43 @@ export default function PhotosPanel({ onPreview }) {
   return (
     <div className="editor photos-panel">
       <p className="hint">
-        After {status.count ? 'a few minutes' : 'a while'} with nobody touching the screen, it shows a slideshow of these
-        photos. Tap anywhere to get back to the calendar.
+        When nobody has touched the wall for a while, it shows a slideshow of these photos. Tap anywhere to get back to
+        the calendar.
       </p>
 
+      <div className="row-actions">
+        <button className="primary" onClick={() => fileRef.current?.click()} disabled={upload && upload.done < upload.total}>
+          Add photos
+        </button>
+        <span className="hint">From this phone, tablet or computer. On a phone, your camera roll opens.</span>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={(e) => {
+            uploadFiles(e.target.files)
+            e.target.value = ''
+          }}
+        />
+      </div>
+      {upload && upload.done < upload.total && (
+        <p className="big">
+          Adding photos… {upload.done} of {upload.total}
+        </p>
+      )}
+      {upload && upload.done === upload.total && (
+        <p className="big">
+          Added {upload.added} photo{upload.added === 1 ? '' : 's'}
+          {upload.total - upload.added - upload.failed.length > 0 && ` (${upload.total - upload.added - upload.failed.length} already here)`}.
+        </p>
+      )}
+      {upload?.failed.length > 0 && <p className="error">Couldn't add {upload.failed.join('; ')}</p>}
+
       {!status.configured && (
-        <p className="notice">
-          To pick photos from Google Photos, add your Google sign-in keys to the backend first (see
-          docs/photos-setup.md). Photos copied into the <code>data/photos</code> folder work without it.
+        <p className="hint">
+          Want to pick from Google Photos too? Add your Google sign-in keys first (see docs/photos-setup.md).
         </p>
       )}
 
@@ -104,6 +170,47 @@ export default function PhotosPanel({ onPreview }) {
       {pick.state === 'done' && <p className="big">Added {pick.added} photo{pick.added === 1 ? '' : 's'}.</p>}
       {pick.state === 'error' && <p className="error">{pick.error}</p>}
       {error && <p className="error">{error}</p>}
+
+      {ss && (
+        <div className="ss-settings">
+          <label>
+            Start after
+            <select value={ss.minutes} onChange={(e) => saveSs({ minutes: Number(e.target.value) })}>
+              {[...new Set([1, 2, 5, 10, 15, 20, 30, 60, ss.minutes])].sort((a, b) => a - b).map((m) => (
+                <option key={m} value={m}>
+                  {m} min untouched
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Each photo
+            <select value={ss.slide_seconds} onChange={(e) => saveSs({ slide_seconds: Number(e.target.value) })}>
+              {[...new Set([5, 10, 15, 20, 30, 60, ss.slide_seconds])].sort((a, b) => a - b).map((n) => (
+                <option key={n} value={n}>
+                  {n} seconds
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={ss.card} onChange={(e) => saveSs({ card: e.target.checked })} />
+            Show time, weather and what's next
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={ss.night} onChange={(e) => saveSs({ night: e.target.checked })} />
+            Dim clock instead of photos at night
+          </label>
+          {ss.night && (
+            <label>
+              Night
+              <input type="time" value={ss.night_start} onChange={(e) => e.target.value && saveSs({ night_start: e.target.value })} />
+              to
+              <input type="time" value={ss.night_end} onChange={(e) => e.target.value && saveSs({ night_end: e.target.value })} />
+            </label>
+          )}
+        </div>
+      )}
 
       <div className="field-label">
         {photos.length} photo{photos.length === 1 ? '' : 's'}
