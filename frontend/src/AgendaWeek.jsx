@@ -33,7 +33,7 @@ const dayIndex = (start, d) => Math.round((new Date(d.getFullYear(), d.getMonth(
  * multi-day event and also a run of separate all-day events with the same title and colour on back-to-back days
  * (how a "No school" week is often entered). Bars are stacked into lanes so they never overlap.
  */
-function buildSpans(events, start) {
+function buildSpans(events, start, n = 7) {
   const groups = {}
   for (const e of events) {
     if (!e.allDay || !e.start) continue
@@ -56,7 +56,7 @@ function buildSpans(events, start) {
     }
   }
   const spans = runs
-    .map((r) => ({ ...r, from: Math.max(0, dayIndex(start, r.start)), to: Math.min(7, dayIndex(start, r.end)) }))
+    .map((r) => ({ ...r, from: Math.max(0, dayIndex(start, r.start)), to: Math.min(n, dayIndex(start, r.end)) }))
     .filter((r) => r.to - r.from >= 2)
     .sort((a, b) => a.from - b.from || (b.to - b.from) - (a.to - a.from))
   const lanes = [] // last day used in each lane
@@ -83,12 +83,13 @@ function whenLabel(ev, compact) {
 }
 
 /** Meal plan for the 7 shown days. Meal weeks start on Monday, so a Sunday-first week spans two of them. */
-function useDinners(start, version) {
+function useDinners(start, version, n = 7) {
   const [byDay, setByDay] = useState({})
   const key = toDay(start)
   useEffect(() => {
     let live = true
-    Promise.all([api.mealPlan(key), api.mealPlan(toDay(addDays(start, 6)))])
+    const weeks = Array.from({ length: Math.ceil(n / 7) + 1 }, (_, i) => api.mealPlan(toDay(addDays(start, Math.min(i * 7, n - 1)))))
+    Promise.all(weeks)
       .then((weeks) => {
         if (!live) return
         const out = {}
@@ -97,7 +98,7 @@ function useDinners(start, version) {
       })
       .catch(() => {})
     return () => { live = false }
-  }, [key, version]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, version, n]) // eslint-disable-line react-hooks/exhaustive-deps
   return byDay
 }
 
@@ -238,6 +239,82 @@ export default function AgendaWeek({ start, events, peopleById, weather, mealsVe
           onDay={onDay}
         />
       ))}
+    </div>
+  )
+}
+
+function ScheduleCard({ ev, when, peopleById, onEvent }) {
+  const person = peopleById[ev.extendedProps.row?.person_id]
+  return (
+    <button className="agenda-card" style={{ background: ev.backgroundColor, color: ev.textColor }} onClick={() => onEvent(ev)}>
+      <span className="agenda-text">
+        <span className="agenda-title">{ev.title}</span>
+        <span className="agenda-when">{when}</span>
+      </span>
+      {person && <Avatar person={person} size={28} />}
+    </button>
+  )
+}
+
+/**
+ * The phone's Schedule: the wall Week's day columns stacked down the screen. Each day has its heading, its
+ * events as coloured cards and that night's dinner. Several-day events show once, on their first day here.
+ */
+export function PhoneSchedule({ start, days: n = 14, events, peopleById, weather, mealsVersion, stickersByDay, renderStickers, onEvent, onDay }) {
+  const days = Array.from({ length: n }, (_, i) => addDays(start, i))
+  const spans = buildSpans(events, start, n)
+  const inSpan = new Set(spans.flatMap((sp) => sp.events))
+  const dinners = useDinners(start, mealsVersion, n)
+  const forecast = Object.fromEntries((weather?.days ?? []).map((d) => [d.date, d]))
+  const today = toDay(new Date())
+  const boxRef = useRef(null)
+  const startKey = toDay(start)
+  useEffect(() => {
+    // open on today when it's in these two weeks
+    const el = boxRef.current?.querySelector('.sched-day.today')
+    if (el && boxRef.current) boxRef.current.scrollTop = el.offsetTop - 4
+    else if (boxRef.current) boxRef.current.scrollTop = 0
+  }, [startKey])
+  return (
+    <div className="phone-schedule" ref={boxRef}>
+      {days.map((d, i) => {
+        const key = toDay(d)
+        const bars = spans.filter((sp) => sp.from === i)
+        const list = eventsOn(events, d).filter((e) => !inSpan.has(e))
+        const dinner = dinners[key]
+        const wx = forecast[key]
+        const total = bars.length + list.length
+        return (
+          <section key={key} className={`sched-day${key === today ? ' today' : ''}`}>
+            <header className="sched-head">
+              <span className="dow">{d.toLocaleDateString([], { weekday: 'short' })}</span>
+              <span className="num">{d.getDate()}</span>
+              <span className="mon">{d.toLocaleDateString([], { month: 'short' })}</span>
+              {total > 0 && <span className="count">{total}</span>}
+              {renderStickers?.(stickersByDay?.[key])}
+              {wx && (
+                <span className="sched-wx">
+                  <Icon name={wx.icon} /> {wx.high}° <span className="lo">{wx.low}°</span>
+                </span>
+              )}
+            </header>
+            <div className="sched-cards">
+              {bars.map((sp) => (
+                <ScheduleCard key={sp.ev.id} ev={sp.ev} when={spanLabel(sp)} peopleById={peopleById} onEvent={onEvent} />
+              ))}
+              {list.map((ev) => (
+                <ScheduleCard key={ev.id + key} ev={ev} when={whenLabel(ev, false)} peopleById={peopleById} onEvent={onEvent} />
+              ))}
+              {total === 0 && <button className="sched-empty" onClick={() => onDay(d)}>Nothing planned · + Add</button>}
+            </div>
+            {dinner && (
+              <div className="sched-dinner">
+                <ItemIcon value={dinner.icon} fallback="plate" /> {dinner.name}
+              </div>
+            )}
+          </section>
+        )
+      })}
     </div>
   )
 }

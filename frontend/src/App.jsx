@@ -8,7 +8,7 @@ import { api, subscribe } from './api.js'
 import Header from './Header.jsx'
 import EventModal, { draftFrom } from './EventModal.jsx'
 import EventView from './EventView.jsx'
-import AgendaWeek from './AgendaWeek.jsx'
+import AgendaWeek, { PhoneSchedule } from './AgendaWeek.jsx'
 import Settings from './Settings.jsx'
 import Avatar from './avatars.jsx'
 import useIsPhone from './useIsPhone.js'
@@ -476,7 +476,7 @@ export default function App() {
 
       <main
         ref={mainRef}
-        className={`calendar${view === AGENDA ? ' agenda-mode' : ''}`}
+        className={`calendar${view === AGENDA ? ' agenda-mode' : ''}${view === PHONE_VIEW ? ' agenda-mode schedule-mode' : ''}`}
         onPointerDown={(e) => {
           // stickers have their own drag; leave those alone
           swipe.current = placing || sliding.current || e.target.closest('.sticker') ? null : { x: e.clientX, y: e.clientY, t: Date.now(), drag: false }
@@ -574,6 +574,23 @@ export default function App() {
             peopleById={peopleById}
             weather={weather}
             mealsVersion={mealsVersion}
+            onEvent={(ev) => setViewing({ row: ev.extendedProps.row, color: ev.backgroundColor })}
+            onDay={(day) => {
+              const start = new Date(day)
+              start.setHours(9, 0, 0, 0)
+              setDraft(draftFrom({ start }))
+            }}
+          />
+        )}
+        {view === PHONE_VIEW && weekStart && (
+          <PhoneSchedule
+            start={weekStart}
+            events={fcEvents}
+            peopleById={peopleById}
+            weather={weather}
+            mealsVersion={mealsVersion}
+            stickersByDay={stickersByDay}
+            renderStickers={(list) => <ListDayStickers stickers={list} />}
             onEvent={(ev) => setViewing({ row: ev.extendedProps.row, color: ev.backgroundColor })}
             onDay={(day) => {
               const start = new Date(day)

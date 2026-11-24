@@ -28,7 +28,7 @@ Tapping an event (in Week or Month) opens its details: the date and time, who it
 
 ## Views
 
-The wall has **Week** and **Month**. Phones have **Month** and **Schedule** (a two-week list), because seven columns don't fit on a phone.
+The wall has **Week** and **Month**. Phones have **Month** and **Schedule**, because seven columns don't fit on a phone. Schedule is two weeks of the Week view's day columns stacked down the screen: each day heading (today highlighted), its events as coloured cards with the time and person, that day's weather and that night's dinner. An event spanning several days shows once, on its first day, as "All day · Mon to Fri".
 
 ## Different screens
 
