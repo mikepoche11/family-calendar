@@ -412,7 +412,12 @@ export default function App() {
       </nav>
 
       <div className="main">
-      <Header weather={weather} themeIcons={themeById(config.theme).icons} />
+      <Header weather={weather} themeIcons={themeById(config.theme).icons}>
+        {/* wall: countdowns get the roomy middle of the top line, so their names show in full */}
+        {!isPhone && section === 'calendar' && (
+          <CountdownStrip countdowns={countdowns} max={2} onOpen={() => setSection('countdowns')} />
+        )}
+      </Header>
 
       {section === 'grocery' && <GroceryList version={groceryVersion} />}
       {section === 'chores' && <Chores people={people} version={choresVersion} />}
@@ -429,7 +434,7 @@ export default function App() {
           <button onClick={() => go(1)} aria-label="Next">›</button>
           <span className="range">{title}</span>
         </div>
-        <CountdownStrip countdowns={countdowns} max={isPhone ? 1 : 2} onOpen={() => setSection('countdowns')} />
+        {isPhone && <CountdownStrip countdowns={countdowns} max={1} onOpen={() => setSection('countdowns')} />}
         {!isPhone && extras}
         <div className="views">
           {VIEWS.filter((v) => (isPhone ? PHONE_VIEWS : WALL_VIEWS).has(v.id)).map((v) => (
