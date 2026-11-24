@@ -10,6 +10,8 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 DATA_DIR=/data STATIC_DIR=/app/static
+# ffmpeg converts HEVC / iPhone videos to H.264 so the wall's browser can play them
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/app ./app

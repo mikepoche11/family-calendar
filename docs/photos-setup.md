@@ -23,13 +23,16 @@ To remove a photo, tap its **×** in Settings > Photos. **Remove all** clears th
 
 ## Videos
 
-**Add photos** takes MP4 videos too (Android's normal format). They're kept as they are, play muted
-and all the way through, then the slideshow moves on. A long clip plays its first minute. Pause and
-swipe work the same as for photos.
+**Add photos** takes videos too. They play muted and all the way through, then the slideshow moves
+on. A long clip plays its first minute. Pause and swipe work the same as for photos.
 
-If the phone records in **HEVC / high-efficiency** video, the upload says that clip can't play on the
-wall instead of adding a blank slide. Turn that setting off in the phone's camera for future clips.
-iPhone .mov videos aren't taken for now.
+- Normal MP4 videos (H.264) are kept as they are and show up straight away.
+- **HEVC / high-efficiency** clips (common on newer Android phones) and iPhone **.mov** videos don't
+  play in the wall's browser on Linux, so the PC converts them in the background: first minute only,
+  sized for the screen, no sound, HDR toned down to normal colours. Settings > Photos says
+  "Getting 2 videos ready for the wall…" meanwhile, and each one joins the slideshow when it's done
+  (roughly half a minute a clip). You can close Settings or put the phone down while it works.
+- Converting uses ffmpeg, which is built into the calendar's Docker image.
 
 ## Using the slideshow
 
