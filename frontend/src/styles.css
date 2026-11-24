@@ -791,3 +791,4 @@ button[aria-label] > .ic:only-child, .icon-pick .ic, .icon-grid .ic { margin-rig
 .sched-dinner { margin-top: 6px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; padding-left: 2px; }
 .sched-dinner .ic { width: 20px; height: 20px; margin: 0; }
 .calendar.schedule-mode { touch-action: pan-y; }
+.toolbar .people { margin-left: auto; flex-wrap: nowrap; }
