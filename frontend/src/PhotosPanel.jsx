@@ -3,6 +3,114 @@ import QRCode from 'qrcode'
 import { api } from './api.js'
 import { isVideo } from './Screensaver.jsx'
 
+const when = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const today = new Date().toDateString() === d.toDateString()
+  return (today ? 'today ' : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ') + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+/** A Google Photos shared album as a slideshow source: paste its link; the server reads the list of photos once a day. */
+function AlbumBox({ onChange }) {
+  const [album, setAlbum] = useState(null)
+  const [text, setText] = useState('')
+  const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const load = () => api.album().then(setAlbum).catch((e) => setError(e.message))
+  useEffect(() => {
+    load()
+  }, [])
+  useEffect(() => {
+    if (!album?.checking) return
+    const t = setInterval(load, 2000)
+    return () => clearInterval(t)
+  }, [album?.checking])
+  const prevCount = useRef(null)
+  useEffect(() => {
+    if (album && prevCount.current !== null && prevCount.current !== album.count) onChange?.()
+    if (album) prevCount.current = album.count
+  }, [album?.count])
+
+  async function save(link) {
+    setError(null)
+    setSaving(true)
+    try {
+      const a = await api.setAlbum(link)
+      setAlbum({ ...a, checking: !!link })
+      setText('')
+    } catch (e) {
+      setError(e.message)
+    }
+    setSaving(false)
+  }
+
+  if (!album) return null
+  return (
+    <div className="album-box">
+      <div className="field-label">Google Photos shared album</div>
+      {!album.link ? (
+        <>
+          <form
+            className="row-actions"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (text.trim()) save(text)
+            }}
+          >
+            <input
+              className="album-link"
+              type="url"
+              inputMode="url"
+              placeholder="Paste the album's share link (https://photos.app.goo.gl/…)"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <button className="primary" disabled={!text.trim() || saving}>
+              Use this album
+            </button>
+          </form>
+          <p className="hint">
+            In Google Photos open the album, tap Share, then Create link (or Copy link), and paste it here. The wall keeps
+            only the list of photo links, checked once a day. The photos stay with Google and load one at a time while the
+            slideshow runs, so nothing is copied to this computer.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="big album-status">
+            {album.checking && !album.count
+              ? 'Reading the album… (a big album takes a minute)'
+              : `${album.count.toLocaleString()} photo${album.count === 1 ? '' : 's'} from the album`}
+            {album.count > 0 && album.fetched_at && <span className="hint"> · list updated {when(album.fetched_at)}</span>}
+            {album.checking && album.count > 0 && <span className="hint"> · checking now…</span>}
+          </p>
+          {album.error && (
+            <p className="error">
+              {album.error}
+              {album.count > 0 ? '. Still showing the last list that worked; it tries again in a few hours.' : '. Your uploaded photos are used until it works.'}
+            </p>
+          )}
+          <div className="row-actions">
+            <button onClick={() => api.checkAlbum().then(setAlbum).then(() => setTimeout(load, 500))} disabled={album.checking}>
+              Check now
+            </button>
+            <button onClick={() => save('')} disabled={saving}>
+              Stop using this album
+            </button>
+            <span className="hint album-url">{album.link}</span>
+          </div>
+        </>
+      )}
+      <p className="hint privacy">
+        Privacy: anyone who has this link can see the whole album, the same as any Google Photos shared link. Only share it
+        with people you trust, and you can turn the link off in Google Photos (album, then Options, then Link sharing) at
+        any time.
+      </p>
+      {error && <p className="error">{error}</p>}
+    </div>
+  )
+}
+
 /** Settings tab for the photo screensaver: connect Google Photos, pick photos, manage them. */
 export default function PhotosPanel({ onPreview }) {
   const [status, setStatus] = useState(null)
@@ -96,6 +204,8 @@ export default function PhotosPanel({ onPreview }) {
         When nobody has touched the wall for a while, it shows a slideshow of these photos. Tap anywhere to get back to
         the calendar.
       </p>
+
+      <AlbumBox />
 
       <div className="row-actions">
         <button className="primary" onClick={() => fileRef.current?.click()} disabled={upload && upload.done < upload.total}>
@@ -224,8 +334,13 @@ export default function PhotosPanel({ onPreview }) {
       )}
 
       <div className="field-label">
-        {photos.length} photo{photos.length === 1 ? '' : 's'}
+        {photos.length} uploaded photo{photos.length === 1 ? '' : 's'}
       </div>
+      {photos.length === 0 && (
+        <div className="actions">
+          <button onClick={onPreview}>Preview slideshow</button>
+        </div>
+      )}
       {photos.length > 0 && (
         <>
           <div className="thumbs">

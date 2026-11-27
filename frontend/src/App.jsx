@@ -72,6 +72,7 @@ export default function App() {
   )
   const [config, setConfig] = useState({ screensaver_minutes: 5, slide_seconds: 15 })
   const [photos, setPhotos] = useState([])
+  const [albumCount, setAlbumCount] = useState(0) // photos in the shared Google album (shown live, not stored)
   const [screensaver, setScreensaver] = useState(false)
   const [section, setSection] = useState('calendar')
   const [groceryVersion, setGroceryVersion] = useState(0)
@@ -105,7 +106,15 @@ export default function App() {
   }, [marblesVersion])
   const loadWeather = useCallback(() => api.weather().then(setWeather).catch(() => {}), [])
   const loadHealth = useCallback(() => api.health().then(setHealth).catch(() => setHealth(null)), [])
-  const loadPhotos = useCallback(() => api.photos().then(setPhotos).catch(() => {}), [])
+  const loadPhotos = useCallback(
+    () =>
+      Promise.all([
+        api.photos().then(setPhotos).catch(() => {}),
+        api.album().then((a) => setAlbumCount(a.count)).catch(() => {}),
+      ]),
+    [],
+  )
+  const hasPhotos = photos.length > 0 || albumCount > 0
   const loadRoutineSettings = useCallback(() => api.routines().then((r) => setRoutineSettings(r.settings)).catch(() => {}), [])
   const loadCountdowns = useCallback(() => api.countdowns().then((r) => setCountdowns(r.countdowns)).catch(() => {}), [])
   const rangeRef = useRef(null)
@@ -213,20 +222,20 @@ export default function App() {
 
   // The no-photos night clock goes away by itself in the morning
   useEffect(() => {
-    if (screensaver && !photos.length && !isNight(ssSettings, clock)) setScreensaver(false)
-  }, [screensaver, photos.length, ssSettings, clock])
+    if (screensaver && !hasPhotos && !isNight(ssSettings, clock)) setScreensaver(false)
+  }, [screensaver, hasPhotos, ssSettings, clock])
 
   // Photo screensaver after SCREENSAVER_MINUTES untouched (only when there are photos and no dialog is open)
   useEffect(() => {
     // No photo slideshow while a routine is up on the wall
     // With no photos it still dims to a clock during night hours
     if (isPhone || draft || showSettings || screensaver || routineAuto) return
-    if (!photos.length && !ssSettings.night) return
+    if (!hasPhotos && !ssSettings.night) return
     let timer
     const reset = () => {
       clearTimeout(timer)
       timer = setTimeout(() => {
-        if (photos.length || isNight(ssSettings)) setScreensaver(true)
+        if (hasPhotos || isNight(ssSettings)) setScreensaver(true)
         else reset()
       }, ssSettings.minutes * 60 * 1000)
     }
@@ -236,7 +245,7 @@ export default function App() {
       clearTimeout(timer)
       window.removeEventListener('pointerdown', reset)
     }
-  }, [isPhone, photos.length, draft, showSettings, screensaver, routineAuto, ssSettings])
+  }, [isPhone, hasPhotos, draft, showSettings, screensaver, routineAuto, ssSettings])
 
   // People colours are applied when events are fetched
   useEffect(() => {
@@ -422,7 +431,7 @@ export default function App() {
           <Icon name="hourglass" /> {isPhone ? 'Countdown' : 'Countdowns'}
         </button>
         {!isPhone && (
-          <button className="rail-photos" onClick={() => (photos.length ? setScreensaver('now') : setShowSettings('photos'))} aria-label="Start the photo slideshow now">
+          <button className="rail-photos" onClick={() => (hasPhotos ? setScreensaver('now') : setShowSettings('photos'))} aria-label="Start the photo slideshow now">
             <Icon name="photos" /> Photos
           </button>
         )}
@@ -652,9 +661,10 @@ export default function App() {
         />
       )}
 
-      {screensaver && (photos.length > 0 || isNight(ssSettings)) && (
+      {screensaver && (hasPhotos || isNight(ssSettings)) && (
         <Screensaver
           photos={photos}
+          album={albumCount > 0}
           settings={screensaver === 'now' ? { ...ssSettings, night: false } : ssSettings}
           weather={weather}
           people={people}

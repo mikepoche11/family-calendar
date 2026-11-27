@@ -7,6 +7,9 @@ slideshow of your family photos. Tall phone photos get a soft blurred edge inste
 and each photo drifts slowly. A pastel card in the corner shows the time, today's weather and the
 next few things on today's calendar.
 
+Got a big Google Photos shared album? The slideshow can show it live without copying anything, see
+[google-album.md](google-album.md).
+
 ## Adding photos from your phone or iPad
 
 1. Open the calendar on your phone or iPad (the Tailscale address, see docs/phone-setup.md).

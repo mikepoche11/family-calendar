@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
 import secrets
 import uuid
 from contextlib import asynccontextmanager
@@ -27,6 +28,7 @@ from .labels import EventLabels
 from .marbles import MarbleError, Marbles
 from .mealdb import IdeasError, MealIdeas
 from .meals import Meals, week_start
+from .album import Album, AlbumError
 from .photos import MAX_UPLOAD, MAX_VIDEO, Photos, PhotosError, video_kind
 from .routines import Routines
 from .shownight import ShowNight
@@ -83,6 +85,7 @@ class State:
             settings.google_oauth_client_secret,
             settings.public_url + "/api/photos/auth/callback",
         )
+        self.album = Album(self.db, settings.data_dir)
         self.google = None
         self.last_sync: str | None = None
         self.last_error: str | None = None
@@ -135,8 +138,11 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(state.sync_loop())
     state.photos.on_change = lambda: state.broadcaster.publish("photos")
     state.photos.convert_pending()  # videos still queued from before a restart
+    state.album.on_change = lambda: state.broadcaster.publish("photos")
+    album_task = asyncio.create_task(state.album.loop())
     yield
     task.cancel()
+    album_task.cancel()
 
 
 app = FastAPI(title="Family Calendar", lifespan=lifespan)
@@ -1241,6 +1247,49 @@ async def photos_upload(request: Request):
     if added and not converting:
         s.broadcaster.publish("photos")
     return {"name": name, "added": added, "video": name.startswith("vid-"), "converting": converting}
+
+
+@app.get("/api/photos/next")
+def photos_next(request: Request, count: int = Query(8, ge=1, le=30), local: bool = False):
+    """The next few slideshow photos, at random from the shared album and the uploads together.
+
+    Album photos come back as Google addresses (the wall adds a size); uploads as file names.
+    local=1 leaves the album out (the wall asks for that when Google's photos stop loading).
+    """
+    s = st(request)
+    uploads = s.photos.list()
+    if local or not s.album.items:
+        return random.sample(uploads, min(count, len(uploads)))
+    return s.album.draw(count, uploads)
+
+
+class AlbumIn(BaseModel):
+    link: str = Field(max_length=500)
+
+
+@app.get("/api/album")
+def album_status(request: Request):
+    return st(request).album.status()
+
+
+@app.put("/api/album")
+async def album_set(body: AlbumIn, request: Request):
+    s = st(request)
+    try:
+        s.album.set_link(body.link)
+    except AlbumError as exc:
+        raise HTTPException(400, str(exc))
+    if s.album.link:
+        asyncio.create_task(s.album.refresh())
+    return s.album.status()
+
+
+@app.post("/api/album/check")
+async def album_check(request: Request):
+    """Read the album again now (at most once a minute)."""
+    s = st(request)
+    asyncio.create_task(s.album.refresh(manual=True))
+    return s.album.status()
 
 
 @app.delete("/api/photos/file/{name}", status_code=204)
