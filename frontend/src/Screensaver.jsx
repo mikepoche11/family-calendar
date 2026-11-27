@@ -12,7 +12,12 @@ const shuffle = (arr) => {
   return a
 }
 
-const src = (name) => `/api/photos/file/${encodeURIComponent(name)}`
+// Shared-album photos are Google addresses; ask Google for one sized to this screen (no bigger than 2048 px)
+const SIDE = Math.min(2048, Math.round(Math.max(window.screen?.width || 1920, window.screen?.height || 1080) * (window.devicePixelRatio || 1)))
+export const isAlbum = (name) => name.startsWith('https://')
+const src = (name) => (isAlbum(name) ? `${name}=w${SIDE}-h${SIDE}` : `/api/photos/file/${encodeURIComponent(name)}`)
+const AHEAD = 3 // album photos fetched ahead of the one showing
+const GIVE_UP = 5 // album photos in a row that won't load before switching to the uploaded ones
 export const isVideo = (name) => /\.(mp4|webm)$/i.test(name)
 const VIDEO_MAX_SECONDS = 60 // a long clip plays its first minute, then the slideshow moves on
 
@@ -105,9 +110,17 @@ function useUpcoming(people, enabled) {
  * black bars for tall phone photos) and drifts slowly. A pastel card shows the time, weather and
  * what's next today. During night hours it shows only a dim clock instead. Any touch closes it.
  */
-export default function Screensaver({ photos, settings, weather, people = [], onClose }) {
-  const [order, setOrder] = useState(() => shuffle(photos))
+export default function Screensaver({ photos, album = false, settings, weather, people = [], onClose }) {
+  // Uploads only: shuffle them all. With a shared album: ask the server for a few at a time, at random
+  // from the album and the uploads together, and load each from Google just before it shows.
+  const [order, setOrder] = useState(() => (album ? [] : shuffle(photos)))
   const [index, setIndex] = useState(0)
+  const [localOnly, setLocalOnly] = useState(false) // Google's photos stopped loading: uploads only
+  const [bad, setBad] = useState({}) // album photos that failed to load
+  const fetching = useRef(false)
+  const misses = useRef(0)
+  const counted = useRef(-1) // the slide last counted as a miss
+  const good = useRef(new Set()) // album photos that loaded
   const [now, setNow] = useState(new Date())
   const night = isNight(settings, now)
   const showPhotos = !night && order.length > 0
@@ -120,6 +133,7 @@ export default function Screensaver({ photos, settings, weather, people = [], on
 
   // Photos added or removed while it's running: keep the order, add new ones next
   useEffect(() => {
+    if (album) return // new uploads come round in the next few the server hands out
     setOrder((cur) => {
       const keep = cur.filter((n) => photos.includes(n))
       const fresh = photos.filter((n) => !cur.includes(n))
@@ -129,11 +143,62 @@ export default function Screensaver({ photos, settings, weather, people = [], on
 
   // Next photo after slideSeconds; a swipe restarts the wait, pause stops it.
   // A video moves on when it ends (or after a minute); the longer timer here is only a safety net.
-  const curIsVideo = isVideo(order[index % (order.length || 1)] ?? '')
+  const n = order.length
+  const cur = !n ? 0 : album ? Math.min(index, n - 1) : index % n
+  const next = !n ? 0 : album ? Math.min(cur + 1, n - 1) : (cur + 1) % n
+  const prev = !n ? 0 : album ? Math.max(cur - 1, 0) : (cur - 1 + n) % n
+  const curIsVideo = isVideo(order[cur] ?? '')
   const advance = () => {
     setQuick(false)
-    setIndex((i) => (i + 1) % order.length)
+    setIndex((i) => (album ? (i + 1 < n ? i + 1 : i) : (i + 1) % n))
   }
+
+  // Album: keep a few photos lined up ahead of the one showing (retries every 30 s if the server can't be reached)
+  useEffect(() => {
+    if (!album || cur + AHEAD < n) return
+    const get = () => {
+      if (fetching.current) return
+      fetching.current = true
+      api
+        .nextPhotos(8, localOnly)
+        .then((list) => list.length && setOrder((o) => [...o, ...list]))
+        .catch(() => {})
+        .finally(() => (fetching.current = false))
+    }
+    get()
+    const t = setInterval(get, 30000)
+    return () => clearInterval(t)
+  }, [album, cur, n, localOnly])
+
+  // Album photo that won't load (Google changed or removed it): skip it. Several in a row means
+  // Google's addresses have stopped working, so switch to the uploaded photos and ask for a fresh list.
+  const onBad = (name) => setBad((b) => (b[name] ? b : { ...b, [name]: true }))
+  useEffect(() => {
+    if (good.current.has(order[cur])) misses.current = 0
+  }, [cur, order])
+  useEffect(() => {
+    if (!album || !bad[order[cur]]) return
+    if (counted.current !== cur) misses.current += 1
+    counted.current = cur
+    if (misses.current >= GIVE_UP && !localOnly) {
+      setLocalOnly(true)
+      setOrder((o) => o.slice(0, cur + 1))
+      api.checkAlbum().catch(() => {})
+    }
+    advance()
+  }, [album, bad, cur, order])
+
+  // The next few album photos load in the background so each one is ready when its turn comes
+  useEffect(() => {
+    if (!album || !showPhotos) return
+    for (const name of order.slice(cur + 2, cur + 1 + AHEAD)) {
+      if (!isAlbum(name)) continue
+      const img = new Image()
+      img.onerror = () => onBad(name)
+      img.src = src(name)
+    }
+  }, [album, showPhotos, cur, order])
+
   useEffect(() => {
     if (!showPhotos || paused || order.length < 2) return
     const t = setTimeout(advance, (curIsVideo ? VIDEO_MAX_SECONDS + 10 : slideSeconds) * 1000)
@@ -143,7 +208,7 @@ export default function Screensaver({ photos, settings, weather, people = [], on
   const step = (dir) => {
     if (order.length < 2) return
     setQuick(true)
-    setIndex((i) => (i + dir + order.length) % order.length)
+    setIndex((i) => (album ? Math.max(0, Math.min(n - 1, i + dir)) : (i + dir + n) % n))
   }
 
   useEffect(() => {
@@ -152,9 +217,6 @@ export default function Screensaver({ photos, settings, weather, people = [], on
   }, [])
 
   // Preload the next photo so the fade never shows a half-loaded image
-  const cur = order.length ? index % order.length : 0
-  const next = order.length ? (cur + 1) % order.length : 0
-  const prev = order.length ? (cur - 1 + order.length) % order.length : 0
   useEffect(() => {
     if (showPhotos && order[next] && !isVideo(order[next])) new Image().src = src(order[next])
   }, [showPhotos, next, order])
@@ -189,6 +251,8 @@ export default function Screensaver({ photos, settings, weather, people = [], on
     },
   }
 
+  if (!showPhotos && album && !night) return <div className="screensaver" onClick={close} /> // first album photos on their way
+
   if (!showPhotos) {
     // Night: a dim clock that wanders a little each minute so nothing burns into the screen
     const spot = now.getHours() * 60 + now.getMinutes()
@@ -209,13 +273,24 @@ export default function Screensaver({ photos, settings, weather, people = [], on
       {order.map((name, i) => {
         if (i !== cur && i !== next && i !== prev) return null // the ones around it stay loaded for swipes
         return (
-          <div key={name} className={`slide ${i === cur ? 'on' : ''}`}>
+          <div key={album ? `${i}-${name}` : name} className={`slide ${i === cur ? 'on' : ''}`}>
             {isVideo(name) ? (
               <VideoSlide name={name} active={i === cur} paused={paused} alone={order.length < 2} onDone={advance} />
             ) : (
               <>
-                <img className="fill" src={src(name)} alt="" draggable={false} />
-                <img className={`photo ${i % 2 ? 'drift-b' : 'drift-a'}`} src={src(name)} alt="" draggable={false} />
+                <img className="fill" src={src(name)} alt="" draggable={false} referrerPolicy="no-referrer" />
+                <img
+                  className={`photo ${i % 2 ? 'drift-b' : 'drift-a'}`}
+                  src={src(name)}
+                  alt=""
+                  draggable={false}
+                  referrerPolicy="no-referrer"
+                  onLoad={() => {
+                    good.current.add(name)
+                    if (i === cur) misses.current = 0
+                  }}
+                  onError={() => isAlbum(name) && onBad(name)}
+                />
               </>
             )}
           </div>

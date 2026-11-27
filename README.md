@@ -55,7 +55,7 @@ project for the full plan.
 1. [Install on a Linux PC](docs/install-linux.md) (step by step, start here)
 2. [Raspberry Pi kiosk](docs/pi-setup.md)
 3. [Connect the Google calendar](docs/google-setup.md)
-4. [Photo screensaver](docs/photos-setup.md) (optional)
+4. [Photo screensaver](docs/photos-setup.md) (optional), and a [Google Photos shared album](docs/google-album.md) in it
 5. [Meal planning](docs/meal-planning.md) (how to use it)
 6. [Calendar stickers](docs/calendar-stickers.md) (how to use them)
 7. [Screen layout](docs/screen-layout.md) (side rail, week columns, event details, screen sizes)
